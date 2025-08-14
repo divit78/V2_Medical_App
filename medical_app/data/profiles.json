@@ -1,0 +1,62 @@
+{
+  "PAT22777": {
+    "full_name": "Divit Pawar",
+    "title": "Mr.",
+    "username": "Divit_Pawar",
+    "mobile": "+91 8765438921",
+    "dob": "2015-07-31",
+    "marital_status": "Single",
+    "blood_group": "A+",
+    "gender": "Male",
+    "patient_id": "PAT22777",
+    "profile_completion": 60,
+    "created_at": "2025-07-31T01:31:59.813548",
+    "city": "Indore",
+    "email": "divitpawar@gmail.com",
+    "alt_mobile": "76487446773",
+    "pincode": "453771",
+    "state": "Madhaya Pradesh",
+    "nationality": "Indian",
+    "address": "OMAXE City",
+    "emergency_name": "",
+    "emergency_number": "743687484",
+    "photo_path": "profile_photos\\PAT22777.png"
+  },
+  "DOC80960": {
+    "full_name": "Amit Maheswari",
+    "username": "Amit_1",
+    "mobile": "3876873647",
+    "email": "amit@gmail.com",
+    "specialization": "Cardiovascular",
+    "consultation_fee": 500,
+    "experience": 26,
+    "hospital_clinic": "MY Hospital",
+    "license_number": "73683248",
+    "qualification": "MBBS in Cardiovascular",
+    "address": "MY Hospital",
+    "city": "Indore",
+    "availability": [
+      "Fri",
+      "Wed",
+      "Mon"
+    ],
+    "doctor_id": "DOC80960",
+    "certificate_path": "medical_app\\data\\uploads\\DOC80960\\th.jpg",
+    "license_path": null,
+    "profile_completion": 95,
+    "created_at": "2025-07-31T04:45:20.708127"
+  },
+  "GUA36932": {
+    "full_name": "Smiriti Pawar",
+    "username": "Smiriti_29",
+    "mobile": "9837483748",
+    "email": "smirit9877@gmail.com",
+    "relationship": "Sibling",
+    "guardian_id": "GUA36932",
+    "connected_patient": "PAT22777",
+    "emergency_contact": "476487787",
+    "address": "Omaxe Hills",
+    "profile_completion": 85,
+    "created_at": "2025-07-31T04:51:42.105609"
+  }
+}
