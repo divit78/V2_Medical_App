@@ -6,7 +6,8 @@ from utils.css import load_css
 from page.navigation import logout
 from config.constants import (
     PROFILES_FILE, MEDICINES_FILE, SCHEDULES_FILE, PRESCRIPTIONS_FILE,
-    MEDICAL_TESTS_FILE, DOCTOR_QUERIES_FILE, GUARDIAN_REQUESTS_FILE, APPOINTMENTS_FILE
+    MEDICAL_TESTS_FILE, DOCTOR_QUERIES_FILE, GUARDIAN_REQUESTS_FILE, APPOINTMENTS_FILE,
+    PATIENT_DOCTOR_REQUESTS_FILE
 )
 from utils.file_ops import load_json
 
@@ -19,8 +20,8 @@ from page.patient.adherence import adherence_history
 from page.patient.guardians import manage_guardians
 from page.update_profile_page import update_profile_page
 
-from page.update_profile_page import update_profile_page
-
+# IMPORT doctor search/connect page
+from page.patient.connect_doctors import connect_doctors_page
 
 def patient_dashboard():
     load_css()
@@ -28,13 +29,11 @@ def patient_dashboard():
     # Enhanced 4D and animated CSS for sidebar, header, summary cards, lists, buttons, and fade-in effect
     custom_css = """
     <style>
-    /* Body and fonts */
     body {
         background: #f9fafc;
         font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
         color: #284363;
     }
-    /* Fade-in animation wrapper */
     .page-content {
         animation: fadeIn 0.5s ease-in-out;
     }
@@ -42,8 +41,6 @@ def patient_dashboard():
         0% { opacity: 0; transform: translateY(10px); }
         100% { opacity: 1; transform: translateY(0); }
     }
-
-    /* Sidebar container */
     [data-testid="stSidebar"] {
         background: #fff;
         box-shadow: 2px 0 12px 0 rgba(0,0,0,0.08);
@@ -55,7 +52,6 @@ def patient_dashboard():
         flex-direction: column;
         align-items: center;
     }
-    /* Sidebar Profile Section */
     .sidebar-profile {
         text-align: center;
         margin-bottom: 35px;
@@ -92,16 +88,12 @@ def patient_dashboard():
         color: #3a2fcc;
         cursor: default;
     }
-
-    /* Sidebar buttons container */
     .sidebar-btn-container {
         width: 100%;
         display: flex;
         flex-direction: column;
         gap: 14px;
     }
-
-    /* 4D Buttons */
     .sidebar-button > button {
         width: 100% !important;
         padding: 14px 0 !important;
@@ -138,7 +130,6 @@ def patient_dashboard():
                     inset -4px -4px 6px rgba(255,255,255,0.9);
         color: #3d3d3d !important;
     }
-    /* Selected button highlight */
     .sidebar-button > button[selected="true"] {
         background: linear-gradient(145deg, #8e9de3, #a8b2ff);
         box-shadow:
@@ -162,14 +153,10 @@ def patient_dashboard():
         outline: 3px solid #7e8aff !important;
         outline-offset: 2px !important;
     }
-
-    /* Sidebar Button Emoji styling */
     .sidebar-button > button span.emoji {
         font-size: 1.4rem;
         line-height: 1;
     }
-
-    /* Main header with animation */
     .main-header {
         font-size: 3rem;
         font-weight: 900;
@@ -191,8 +178,6 @@ def patient_dashboard():
         margin-bottom: 2em;
         animation: fadeIn 1.5s ease forwards;
     }
-
-    /* Summary cards container */
     .summary-cards {
         display: flex;
         gap: 24px;
@@ -236,8 +221,6 @@ def patient_dashboard():
         color: #5a577a;
         font-weight: 600;
     }
-
-    /* Info box */
     .stInfo {
         background-color: #eaf0fb !important;
         color: #52796f !important;
@@ -248,8 +231,6 @@ def patient_dashboard():
         font-size: 1.1rem !important;
         animation: fadeIn 1s ease forwards;
     }
-
-    /* List item styling with hover */
     div[data-testid="stMarkdownContainer"] li {
         background: #f3ebff;
         border-radius: 0.66em;
@@ -265,8 +246,6 @@ def patient_dashboard():
         cursor: default;
         color: #3f336f;
     }
-
-    /* Main page buttons */
     .stButton > button {
         background-color: #644cff;
         color: #fff;
@@ -286,7 +265,6 @@ def patient_dashboard():
     }
     </style>
     """
-
     st.markdown(custom_css, unsafe_allow_html=True)
 
     profiles = load_json(PROFILES_FILE)
@@ -298,18 +276,22 @@ def patient_dashboard():
     profile_pic_path = profile.get("profile_pic")
     if profile_pic_path and os.path.exists(profile_pic_path):
         st.sidebar.image(profile_pic_path, width=110)
-    st.sidebar.markdown(f'<div class="sidebar-profile-name">{profile.get("full_name", "Your Profile")}</div>', unsafe_allow_html=True)
+    st.sidebar.markdown(
+        f'<div class="sidebar-profile-name">{profile.get("full_name", "Your Profile")}</div>',
+        unsafe_allow_html=True
+    )
     if not (profile_pic_path and os.path.exists(profile_pic_path)):
         st.sidebar.info("No profile photo uploaded.")
     st.sidebar.markdown("</div>", unsafe_allow_html=True)
 
-    # -- Sidebar navigation buttons with emoji spans (for better CSS targeting) --
     nav_items = [
         ("🏠", "Dashboard Home"),
         ("💊", "Add Medicine"),
         ("⏰", "Medicine Reminder"),
         ("📄", "Prescriptions"),
         ("🩺", "Medical Tests"),
+        ("🔗", "Search Doctors"),
+        ("👥", "Connected Doctors"),  # NEW OPTION
         ("💬", "Ask Doctor / Appointments"),
         ("📊", "Adherence History"),
         ("🛡️", "Guardians"),
@@ -324,14 +306,7 @@ def patient_dashboard():
 
     st.sidebar.markdown('<div class="sidebar-btn-container">', unsafe_allow_html=True)
     for emoji, label_key in nav_items:
-        is_selected = (label_key == selected_page)
-
-        # Prepare button label with emoji wrapped in a span for CSS
-        button_label = f'<span class="emoji">{emoji}</span> {label_key}'
-
-        # Streamlit buttons cannot render HTML, so use plain text with emoji unicode
         label_text = f"{emoji}  {label_key}"
-
         btn = st.sidebar.button(label_text, key=f"btn-{label_key}")
         if btn:
             st.session_state.patient_nav_page = label_key
@@ -342,7 +317,6 @@ def patient_dashboard():
     page = selected_page
 
     if page == "Dashboard Home":
-        # Animated beautiful header with highlighted name and subheader
         st.markdown(f"""
             <div class="main-header">
                 Welcome back, <span class="name-highlight">{profile.get("full_name", "Patient")}</span>! 👋
@@ -377,20 +351,17 @@ def patient_dashboard():
 
             # Summary cards clickable to navigate
             cols = st.columns(min(len(nav_items), 3))
-
             cards_info = [
                 ("🩺 Upcoming Appointments", len(patient_appointments), "Ask Doctor / Appointments"),
                 ("💊 Your Medicines", len(patient_meds), "Add Medicine"),
                 ("⏰ Medicine Reminders", len(reminders), "Medicine Reminder"),
             ]
-
             for idx, (title, count, target_page) in enumerate(cards_info):
                 with cols[idx % len(cols)]:
                     if st.button(f"{title}\n\n{count}", key=f"card-{target_page}"):
                         st.session_state.patient_nav_page = target_page
                         st.rerun()
 
-            # Medicine reminders list
             if reminders:
                 st.subheader("Today's Medicine Reminders")
                 for time_str, med_name in sorted(reminders):
@@ -398,12 +369,24 @@ def patient_dashboard():
             else:
                 st.info("No medicine reminders for today.", icon="ℹ️")
 
-            # Upcoming appointments list
             if patient_appointments:
                 st.subheader("Upcoming Appointments")
                 for app in patient_appointments:
                     doc = profiles.get(app.get("doctor_id"), {})
                     st.write(f"📅 {app.get('date')} with Dr. {doc.get('full_name', 'Doctor')} ({app.get('type')})")
+
+            # DOCTOR CONNECTIONS SECTION
+            st.subheader("Your Doctor Connections")
+            requests = load_json(PATIENT_DOCTOR_REQUESTS_FILE)
+            patient_requests = [req for req in requests.values() if req.get('patient_id') == user_id]
+
+            if patient_requests:
+                for req in patient_requests:
+                    doctor_profile = profiles.get(req.get('doctor_id'), {})
+                    status_color = {"pending": "🟡", "approved": "🟢", "denied": "🔴"}
+                    st.write(f"{status_color.get(req['status'], '⚪')} Dr. {doctor_profile.get('full_name', 'Unknown')} - {req['status'].title()}")
+            else:
+                st.info("No doctor connections yet. Use 'Search Doctors' to connect with doctors.", icon="🔗")
 
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -415,6 +398,59 @@ def patient_dashboard():
         prescriptions_page(user_id)
     elif page == "Medical Tests":
         medical_tests_page(user_id)
+    elif page == "Search Doctors":
+        connect_doctors_page(user_id)
+    elif page == "Connected Doctors":  # NEW PAGE
+        st.title("👥 Connected Doctors")
+        
+        patient_doctor_requests = load_json(PATIENT_DOCTOR_REQUESTS_FILE)
+        profiles = load_json(PROFILES_FILE)
+        
+        # Get all approved connections for this patient
+        connected_requests = [
+            req for req in patient_doctor_requests.values()
+            if req.get("patient_id") == user_id and req.get("status") == "approved"
+        ]
+        
+        st.write(f"**Total Connected Doctors:** {len(connected_requests)}")
+        
+        if not connected_requests:
+            st.info("No doctors connected yet. Send connection requests to doctors and wait for approval.")
+        else:
+            for req in connected_requests:
+                doctor_id = req.get("doctor_id")
+                doctor_profile = profiles.get(doctor_id, {})
+                
+                st.markdown("---")
+                col1, col2 = st.columns([2, 1])
+                
+                with col1:
+                    st.write(f"**🩺 Dr. {doctor_profile.get('full_name', 'Unknown Doctor')}**")
+                    st.write(f"🏥 Specialization: {doctor_profile.get('specialization', 'Not specified')}")
+                    st.write(f"🏢 Hospital: {doctor_profile.get('hospital_clinic', 'Not provided')}")
+                    st.write(f"📧 Email: {doctor_profile.get('email', 'Not provided')}")
+                    st.write(f"📱 Mobile: {doctor_profile.get('mobile', 'Not provided')}")
+                    st.write(f"💰 Consultation Fee: ₹{doctor_profile.get('consultation_fee', 'Not specified')}")
+                    st.write(f"📅 Experience: {doctor_profile.get('experience', 'Not specified')} years")
+                    st.write(f"🔗 Connected on: {req.get('requested_at', 'Unknown')}")
+                
+                with col2:
+                    if st.button("💬 Ask Question", key=f"question_{doctor_id}"):
+                        st.session_state.patient_nav_page = "Ask Doctor / Appointments"
+                        st.rerun()
+                    
+                    if st.button("📅 Book Appointment", key=f"appointment_{doctor_id}"):
+                        st.session_state.patient_nav_page = "Ask Doctor / Appointments"
+                        st.rerun()
+                    
+                    if st.button("📋 View Prescriptions", key=f"prescriptions_{doctor_id}"):
+                        st.session_state.patient_nav_page = "Prescriptions"
+                        st.rerun()
+                    
+                    if st.button("🧪 View Test Reports", key=f"tests_{doctor_id}"):
+                        st.session_state.patient_nav_page = "Medical Tests"
+                        st.rerun()
+
     elif page == "Ask Doctor / Appointments":
         ask_questions_and_appointments(user_id)
     elif page == "Adherence History":

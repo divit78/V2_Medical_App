@@ -1,4 +1,3 @@
-from utils.db_helper import db
 import os
 import json
 from datetime import datetime
@@ -8,6 +7,8 @@ def load_json(file_path):
     Load data from database instead of JSON files.
     This maintains compatibility with existing code.
     """
+    from utils.db_helper import db # Import inside function to avoid circular import
+    
     try:
         if 'users' in file_path.lower():
             return db.load_users()
@@ -40,6 +41,8 @@ def save_json(file_path, data):
     Save data to database instead of JSON files.
     Routes to appropriate database save function.
     """
+    from utils.db_helper import db # Import inside function to avoid circular import
+    
     try:
         if 'users' in file_path.lower():
             for user_id, user_data in data.items():
@@ -56,7 +59,21 @@ def save_json(file_path, data):
         elif 'prescriptions' in file_path.lower():
             for prescription_id, prescription_data in data.items():
                 db.save_prescription(prescription_id, prescription_data)
-        # Add other save operations as needed
+        elif 'medical_tests' in file_path.lower():
+            for test_id, test_data in data.items():
+                db.save_medical_test(test_id, test_data)
+        elif 'doctor_queries' in file_path.lower():
+            for query_id, query_data in data.items():
+                db.save_doctor_query(query_id, query_data)
+        elif 'appointments' in file_path.lower():
+            for appointment_id, appointment_data in data.items():
+                db.save_appointment(appointment_id, appointment_data)
+        elif 'guardian_requests' in file_path.lower():
+            for request_id, request_data in data.items():
+                db.save_guardian_request(request_id, request_data)
+        elif 'patient_doctor_requests' in file_path.lower():
+            for request_id, request_data in data.items():
+                db.save_patient_doctor_request(request_id, request_data)
     except Exception as e:
         print(f"Error saving data: {e}")
 

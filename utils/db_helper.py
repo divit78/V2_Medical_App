@@ -6,7 +6,7 @@ from config.constants import DB_CONFIG
 class DatabaseHelper:
     def __init__(self):
         self.connection = None
-    
+
     def connect(self, create_db_if_missing=False):
         """Establish database connection"""
         try:
@@ -22,7 +22,7 @@ class DatabaseHelper:
                 with temp_connection.cursor() as cursor:
                     cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_CONFIG['database']}")
                 temp_connection.close()
-            
+
             # Now connect to the specific database
             self.connection = pymysql.connect(
                 host=DB_CONFIG['host'],
@@ -36,13 +36,12 @@ class DatabaseHelper:
         except Exception as e:
             print(f"Database connection error: {e}")
             raise
-    
+
     def execute_query(self, query, params=None):
         """Execute a query and return results"""
         try:
             if not self.connection or not self.connection.open:
                 self.connect()
-            
             with self.connection.cursor() as cursor:
                 cursor.execute(query, params or ())
                 if query.strip().upper().startswith('SELECT'):
@@ -52,7 +51,7 @@ class DatabaseHelper:
         except Exception as e:
             print(f"Query execution error: {e}")
             raise
-    
+
     def load_users(self):
         """Load all users - replaces load_json(USERS_FILE)"""
         try:
@@ -61,23 +60,20 @@ class DatabaseHelper:
             return {user['user_id']: user for user in result}
         except Exception:
             return {}
-    
+
     def save_user(self, user_id, user_data):
         """Save or update user - replaces save_json for users"""
         try:
-            # Patch user_data with default values for missing fields
             defaults = {
                 'created_at': None,
                 'last_login': None,
                 'is_active': True,
                 'verification_status': 'pending'
             }
-            
-            # Add missing fields with default values
             for key, default_val in defaults.items():
                 if key not in user_data:
                     user_data[key] = default_val
-            
+
             query = """
             INSERT INTO users (user_id, username, password, user_type, created_at, last_login, is_active, verification_status)
             VALUES (%(user_id)s, %(username)s, %(password)s, %(user_type)s, %(created_at)s, %(last_login)s, %(is_active)s, %(verification_status)s)
@@ -90,7 +86,7 @@ class DatabaseHelper:
         except Exception as e:
             print(f"Error saving user: {e}")
             return False
-    
+
     def load_profiles(self):
         """Load all profiles - replaces load_json(PROFILES_FILE)"""
         try:
@@ -99,11 +95,10 @@ class DatabaseHelper:
             return {profile['user_id']: profile for profile in result}
         except Exception:
             return {}
-    
+
     def save_profile(self, user_id, profile_data):
         """Save or update profile - replaces save_json for profiles"""
         try:
-            # Patch profile_data with default values for missing fields
             defaults = {
                 'full_name': None, 'username': None, 'mobile': None, 'alt_mobile': None,
                 'email': None, 'emergency_name': None, 'emergency_number': None,
@@ -116,28 +111,25 @@ class DatabaseHelper:
                 'license_path': None, 'relationship': None, 'connected_patient': None,
                 'profile_completion': 0, 'created_at': None
             }
-            
-            # Add missing fields with default values
             for key, default_val in defaults.items():
                 if key not in profile_data:
                     profile_data[key] = default_val
-            
-            # Convert lists to JSON for availability field
+
             if 'availability' in profile_data and isinstance(profile_data['availability'], list):
                 profile_data['availability'] = json.dumps(profile_data['availability'])
-            
+
             query = """
             INSERT INTO profiles (user_id, full_name, username, mobile, alt_mobile, email, emergency_name, emergency_number,
-                                 address, city, pincode, state, nationality, gender, dob, photo_path, title, marital_status,
-                                 blood_group, patient_id, specialization, consultation_fee, experience, hospital_clinic,
-                                 license_number, qualification, availability, certificate_path, license_path, relationship,
-                                 connected_patient, profile_completion, created_at)
+            address, city, pincode, state, nationality, gender, dob, photo_path, title, marital_status,
+            blood_group, patient_id, specialization, consultation_fee, experience, hospital_clinic,
+            license_number, qualification, availability, certificate_path, license_path, relationship,
+            connected_patient, profile_completion, created_at)
             VALUES (%(user_id)s, %(full_name)s, %(username)s, %(mobile)s, %(alt_mobile)s, %(email)s, %(emergency_name)s,
-                    %(emergency_number)s, %(address)s, %(city)s, %(pincode)s, %(state)s, %(nationality)s, %(gender)s,
-                    %(dob)s, %(photo_path)s, %(title)s, %(marital_status)s, %(blood_group)s, %(patient_id)s,
-                    %(specialization)s, %(consultation_fee)s, %(experience)s, %(hospital_clinic)s, %(license_number)s,
-                    %(qualification)s, %(availability)s, %(certificate_path)s, %(license_path)s, %(relationship)s,
-                    %(connected_patient)s, %(profile_completion)s, %(created_at)s)
+            %(emergency_number)s, %(address)s, %(city)s, %(pincode)s, %(state)s, %(nationality)s, %(gender)s,
+            %(dob)s, %(photo_path)s, %(title)s, %(marital_status)s, %(blood_group)s, %(patient_id)s,
+            %(specialization)s, %(consultation_fee)s, %(experience)s, %(hospital_clinic)s, %(license_number)s,
+            %(qualification)s, %(availability)s, %(certificate_path)s, %(license_path)s, %(relationship)s,
+            %(connected_patient)s, %(profile_completion)s, %(created_at)s)
             ON DUPLICATE KEY UPDATE
             full_name=VALUES(full_name), username=VALUES(username), mobile=VALUES(mobile), alt_mobile=VALUES(alt_mobile),
             email=VALUES(email), emergency_name=VALUES(emergency_name), emergency_number=VALUES(emergency_number),
@@ -155,7 +147,7 @@ class DatabaseHelper:
         except Exception as e:
             print(f"Error saving profile: {e}")
             return False
-    
+
     def load_medicines(self):
         """Load all medicines - replaces load_json(MEDICINES_FILE)"""
         try:
@@ -164,7 +156,7 @@ class DatabaseHelper:
             return {medicine['medicine_id']: medicine for medicine in result}
         except Exception:
             return {}
-    
+
     def save_medicine(self, medicine_id, medicine_data):
         """Save or update medicine - replaces save_json for medicines"""
         try:
@@ -173,16 +165,15 @@ class DatabaseHelper:
                 'take_with_food': 'After Food', 'category': 'General',
                 'image_path': None, 'created_at': None
             }
-            
             for key, default_val in defaults.items():
                 if key not in medicine_data:
                     medicine_data[key] = default_val
-            
+
             query = """
             INSERT INTO medicines (medicine_id, patient_id, name, contents, quantity, expiry_date, purpose,
-                                  instructions, take_with_food, category, image_path, created_at)
+            instructions, take_with_food, category, image_path, created_at)
             VALUES (%(medicine_id)s, %(patient_id)s, %(name)s, %(contents)s, %(quantity)s, %(expiry_date)s,
-                    %(purpose)s, %(instructions)s, %(take_with_food)s, %(category)s, %(image_path)s, %(created_at)s)
+            %(purpose)s, %(instructions)s, %(take_with_food)s, %(category)s, %(image_path)s, %(created_at)s)
             ON DUPLICATE KEY UPDATE
             patient_id=VALUES(patient_id), name=VALUES(name), contents=VALUES(contents), quantity=VALUES(quantity),
             expiry_date=VALUES(expiry_date), purpose=VALUES(purpose), instructions=VALUES(instructions),
@@ -193,7 +184,7 @@ class DatabaseHelper:
         except Exception as e:
             print(f"Error saving medicine: {e}")
             return False
-    
+
     def load_schedules(self):
         """Load all schedules - replaces load_json(SCHEDULES_FILE)"""
         try:
@@ -205,7 +196,7 @@ class DatabaseHelper:
             return {schedule['schedule_id']: schedule for schedule in result}
         except Exception:
             return {}
-    
+
     def save_schedule(self, schedule_id, schedule_data):
         """Save or update schedule - replaces save_json for schedules"""
         try:
@@ -213,19 +204,18 @@ class DatabaseHelper:
                 'precaution': None, 'remaining_quantity': 0, 'last_taken': None,
                 'next_dose_time': None, 'missed_doses': 0, 'created_at': None
             }
-            
             for key, default_val in defaults.items():
                 if key not in schedule_data:
                     schedule_data[key] = default_val
-            
+
             if 'times' in schedule_data and isinstance(schedule_data['times'], list):
                 schedule_data['times'] = json.dumps(schedule_data['times'])
-            
+
             query = """
             INSERT INTO schedules (schedule_id, patient_id, medicine_id, doses_per_day, times, before_after_food,
-                                  precaution, remaining_quantity, last_taken, next_dose_time, missed_doses, created_at)
+            precaution, remaining_quantity, last_taken, next_dose_time, missed_doses, created_at)
             VALUES (%(schedule_id)s, %(patient_id)s, %(medicine_id)s, %(doses_per_day)s, %(times)s, %(before_after_food)s,
-                    %(precaution)s, %(remaining_quantity)s, %(last_taken)s, %(next_dose_time)s, %(missed_doses)s, %(created_at)s)
+            %(precaution)s, %(remaining_quantity)s, %(last_taken)s, %(next_dose_time)s, %(missed_doses)s, %(created_at)s)
             ON DUPLICATE KEY UPDATE
             patient_id=VALUES(patient_id), medicine_id=VALUES(medicine_id), doses_per_day=VALUES(doses_per_day),
             times=VALUES(times), before_after_food=VALUES(before_after_food), precaution=VALUES(precaution),
@@ -237,7 +227,7 @@ class DatabaseHelper:
         except Exception as e:
             print(f"Error saving schedule: {e}")
             return False
-    
+
     def load_prescriptions(self):
         """Load all prescriptions"""
         try:
@@ -246,23 +236,22 @@ class DatabaseHelper:
             return {prescription['prescription_id']: prescription for prescription in result}
         except Exception:
             return {}
-    
+
     def save_prescription(self, prescription_id, prescription_data):
         """Save or update prescription"""
         try:
             defaults = {
                 'doctor_id': None, 'file_path': None, 'notes': None, 'uploaded_at': None
             }
-            
             for key, default_val in defaults.items():
                 if key not in prescription_data:
                     prescription_data[key] = default_val
-            
+
             query = """
             INSERT INTO prescriptions (prescription_id, patient_id, doctor_id, file_path, notes, uploaded_at)
             VALUES (%(prescription_id)s, %(patient_id)s, %(doctor_id)s, %(file_path)s, %(notes)s, %(uploaded_at)s)
             ON DUPLICATE KEY UPDATE
-            patient_id=VALUES(patient_id), doctor_id=VALUES(doctor_id), file_path=VALUES(file_path), 
+            patient_id=VALUES(patient_id), doctor_id=VALUES(doctor_id), file_path=VALUES(file_path),
             notes=VALUES(notes), uploaded_at=VALUES(uploaded_at)
             """
             prescription_data['prescription_id'] = prescription_id
@@ -270,7 +259,7 @@ class DatabaseHelper:
         except Exception as e:
             print(f"Error saving prescription: {e}")
             return False
-    
+
     def load_medical_tests(self):
         """Load all medical tests"""
         try:
@@ -279,7 +268,31 @@ class DatabaseHelper:
             return {test['test_id']: test for test in result}
         except Exception:
             return {}
-    
+
+    def save_medical_test(self, test_id, test_data):
+        """Save or update medical test"""
+        try:
+            defaults = {
+                'doctor_id': None, 'test_type': None, 'file_path': None,
+                'notes': None, 'uploaded_at': None, 'ordered_at': None
+            }
+            for key, default_val in defaults.items():
+                if key not in test_data:
+                    test_data[key] = default_val
+
+            query = """
+            INSERT INTO medical_tests (test_id, patient_id, doctor_id, test_type, file_path, notes, uploaded_at, ordered_at)
+            VALUES (%(test_id)s, %(patient_id)s, %(doctor_id)s, %(test_type)s, %(file_path)s, %(notes)s, %(uploaded_at)s, %(ordered_at)s)
+            ON DUPLICATE KEY UPDATE
+            patient_id=VALUES(patient_id), doctor_id=VALUES(doctor_id), test_type=VALUES(test_type),
+            file_path=VALUES(file_path), notes=VALUES(notes), uploaded_at=VALUES(uploaded_at), ordered_at=VALUES(ordered_at)
+            """
+            test_data['test_id'] = test_id
+            return self.execute_query(query, test_data)
+        except Exception as e:
+            print(f"Error saving medical test: {e}")
+            return False
+
     def load_doctor_queries(self):
         """Load all doctor queries"""
         try:
@@ -288,7 +301,44 @@ class DatabaseHelper:
             return {query['query_id']: query for query in result}
         except Exception:
             return {}
-    
+
+    def save_doctor_query(self, query_id, query_data):
+        """Save or update doctor query"""
+        try:
+            defaults = {
+                'doctor_id': None, 'question': None, 'submitted_at': None,
+                'appointment_type': 'No Appointment', 'preferred_date': None, 'preferred_time': None,
+                'status': 'pending', 'doctor_response': None
+            }
+            for key, default_val in defaults.items():
+                if key not in query_data:
+                    query_data[key] = default_val
+
+            query = """
+            INSERT INTO doctor_queries (query_id, patient_id, doctor_id, question, submitted_at,
+                                       appointment_type, preferred_date, preferred_time, status, doctor_response)
+            VALUES (%(query_id)s, %(patient_id)s, %(doctor_id)s, %(question)s, %(submitted_at)s,
+                    %(appointment_type)s, %(preferred_date)s, %(preferred_time)s, %(status)s, %(doctor_response)s)
+            ON DUPLICATE KEY UPDATE
+            patient_id=VALUES(patient_id), doctor_id=VALUES(doctor_id), question=VALUES(question),
+            status=VALUES(status), doctor_response=VALUES(doctor_response)
+            """
+            query_data['query_id'] = query_id
+            return self.execute_query(query, query_data)
+        except Exception as e:
+            print(f"Error saving doctor query: {e}")
+            return False
+
+    def clean_data(self, data):
+        """Clean string data by removing whitespace"""
+        cleaned = {}
+        for k, v in data.items():
+            if isinstance(v, str):
+                cleaned[k] = v.strip()
+            else:
+                cleaned[k] = v
+        return cleaned
+
     def load_appointments(self):
         """Load all appointments"""
         try:
@@ -297,7 +347,44 @@ class DatabaseHelper:
             return {appointment['appointment_id']: appointment for appointment in result}
         except Exception:
             return {}
-    
+
+    def save_appointment(self, appointment_id, appointment_data):
+        """Save or update appointment with data cleaning"""
+        try:
+            # Clean all string data to prevent truncation errors
+            appointment_data = self.clean_data(appointment_data)
+            
+            defaults = {
+                'type': 'Video Call', 
+                'status': 'requested',  # FIXED: Changed from 'scheduled' to 'requested'
+                'notes': None, 
+                'created_at': None
+            }
+
+            for key, default_val in defaults.items():
+                if key not in appointment_data:
+                    appointment_data[key] = default_val
+
+            query = """
+            INSERT INTO appointments (appointment_id, patient_id, doctor_id, appointment_date,
+                                     appointment_time, type, status, notes, created_at)
+            VALUES (%(appointment_id)s, %(patient_id)s, %(doctor_id)s, %(appointment_date)s,
+                    %(appointment_time)s, %(type)s, %(status)s, %(notes)s, %(created_at)s)
+            ON DUPLICATE KEY UPDATE
+            patient_id=VALUES(patient_id), doctor_id=VALUES(doctor_id), 
+            appointment_date=VALUES(appointment_date), appointment_time=VALUES(appointment_time),
+            type=VALUES(type), status=VALUES(status), notes=VALUES(notes)
+            """
+            
+            appointment_data['appointment_id'] = appointment_id
+            result = self.execute_query(query, appointment_data)
+            print(f"✅ Appointment saved: {appointment_id} with status: {appointment_data.get('status')}")
+            return result
+            
+        except Exception as e:
+            print(f"❌ Error saving appointment: {e}")
+            return False
+
     def load_guardian_requests(self):
         """Load all guardian requests"""
         try:
@@ -312,7 +399,34 @@ class DatabaseHelper:
             return grouped_requests
         except Exception:
             return {}
-    
+
+    def save_guardian_request(self, request_id, request_data):
+        """Save or update guardian request"""
+        try:
+            defaults = {
+                'guardian_name': None, 'relationship': None, 'mobile': None,
+                'email': None, 'status': 'pending', 'requested_at': None
+            }
+            for key, default_val in defaults.items():
+                if key not in request_data:
+                    request_data[key] = default_val
+
+            query = """
+            INSERT INTO guardian_requests (request_id, patient_id, guardian_id, guardian_name,
+                                          relationship, mobile, email, status, requested_at)
+            VALUES (%(request_id)s, %(patient_id)s, %(guardian_id)s, %(guardian_name)s,
+                    %(relationship)s, %(mobile)s, %(email)s, %(status)s, %(requested_at)s)
+            ON DUPLICATE KEY UPDATE
+            patient_id=VALUES(patient_id), guardian_id=VALUES(guardian_id), guardian_name=VALUES(guardian_name),
+            relationship=VALUES(relationship), mobile=VALUES(mobile), email=VALUES(email),
+            status=VALUES(status), requested_at=VALUES(requested_at)
+            """
+            request_data['request_id'] = request_id
+            return self.execute_query(query, request_data)
+        except Exception as e:
+            print(f"Error saving guardian request: {e}")
+            return False
+
     def load_patient_doctor_requests(self):
         """Load all patient doctor requests"""
         try:
@@ -321,11 +435,34 @@ class DatabaseHelper:
             return {request['request_id']: request for request in result}
         except Exception:
             return {}
-    
+
+    def save_patient_doctor_request(self, request_id, request_data):
+        """Save or update patient doctor request"""
+        try:
+            defaults = {
+                'status': 'pending',
+                'requested_at': None
+            }
+            for key, default_val in defaults.items():
+                if key not in request_data:
+                    request_data[key] = default_val
+
+            query = """
+            INSERT INTO patient_doctor_requests (request_id, patient_id, doctor_id, status, requested_at)
+            VALUES (%(request_id)s, %(patient_id)s, %(doctor_id)s, %(status)s, %(requested_at)s)
+            ON DUPLICATE KEY UPDATE
+            status=VALUES(status), requested_at=VALUES(requested_at)
+            """
+            request_data['request_id'] = request_id
+            return self.execute_query(query, request_data)
+        except Exception as e:
+            print(f"Error saving patient doctor request: {e}")
+            return False
+
     def close_connection(self):
         """Close database connection"""
         if self.connection:
             self.connection.close()
 
-# Create global instance
+# CREATE GLOBAL DB INSTANCE
 db = DatabaseHelper()

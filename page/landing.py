@@ -1,428 +1,477 @@
 import streamlit as st
-from utils.css import load_css
 from page.navigation import go_to
-
+from utils.css import load_css
+import time
 
 def landing_page():
-    load_css()
-
-    st.markdown("""
-    <style>
-    /* --- Page Background --- */
-    body, .streamlit-container {
-        background-color: #f5f5f5;  /* Light gray background */
-        min-height: 100vh;
-        margin: 0;
-        padding: 0;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        color: #2f2f2f;  /* Dark text for readability */
-    }
-
-    .st-emotion-cache-1r4qj8v {
-        position: absolute;
-        background: #f5f5f5;  /* Light gray background */
-        color: rgb(49, 51, 63);
-        inset: 0px;
-        color-scheme: light;
-        overflow: hidden;
-    }
-
-    /* Container styling with white background and subtle shadow */
-    .landing-container {
-        max-width: 900px;
-        margin: 3rem auto 3rem auto;
-        background: #ffffffee;  /* White with slight transparency */
-        border-radius: 20px;
-        padding: 2.5rem 3rem 3rem 3rem;
-        box-shadow: 0 12px 30px rgba(100, 130, 190, 0.15);
-        color: #323232;
-    }
-
-    /* Enhanced Header with Multiple Animations */
-    .main-header {
-        margin-bottom: 3rem;
-        text-align: center;
-        user-select: none;
-        background: linear-gradient(135deg, #444444, #555555, #444444);
-        background-size: 200% 200%;
-        border-radius: 20px;
-        padding: 3rem 2rem 2.7rem 2rem;
-        color: #e0e0e0;
-        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.7);
-        position: relative;
-        overflow: hidden;
-        animation: backgroundShift 8s ease-in-out infinite, headerFloat 6s ease-in-out infinite alternate;
-    }
-
-    /* Background gradient animation */
-    @keyframes backgroundShift {
-        0%, 100% { 
-            background-position: 0% 50%; 
-        }
-        50% { 
-            background-position: 100% 50%; 
-        }
-    }
-
-    /* Floating animation for header container */
-    @keyframes headerFloat {
-        0% { 
-            transform: translateY(0px) scale(1);
-            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.7);
-        }
-        50% { 
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
-        }
-        100% { 
-            transform: translateY(0px) scale(1);
-            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.7);
-        }
-    }
-
-    /* Animated overlay particles */
-    .main-header::before {
-        content: "";
-        position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.1) 2px, transparent 2px),
-                    radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.15) 1px, transparent 1px),
-                    radial-gradient(circle at 40% 80%, rgba(255, 255, 255, 0.08) 3px, transparent 3px);
-        animation: particleMove 12s linear infinite;
-        pointer-events: none;
-        z-index: 1;
-    }
-
-    @keyframes particleMove {
-        0% { transform: translateX(-100px) translateY(-50px); opacity: 0.3; }
-        50% { opacity: 0.8; }
-        100% { transform: translateX(100px) translateY(50px); opacity: 0.3; }
-    }
-
-    /* Enhanced Header Title with Multiple Animations */
-    .main-header h1 {
-        font-size: 4.8rem;
-        font-weight: 900;
-        margin-bottom: 0.5rem;
-        letter-spacing: 0.1em;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        line-height: 1.1;
-        cursor: default;
-        position: relative;
-        z-index: 2;
-        background: linear-gradient(45deg, #ffffff, #f0f0f0, #ffffff, #e8e8e8);
-        background-size: 400% 400%;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        animation: textShimmer 4s ease-in-out infinite, textBounce 3s ease-in-out infinite;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-    }
-
-    /* Text shimmer animation */
-    @keyframes textShimmer {
-        0%, 100% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-    }
-
-    /* Subtle bounce animation for title */
-    @keyframes textBounce {
-        0%, 100% { transform: translateY(0px); }
-        25% { transform: translateY(-2px); }
-        75% { transform: translateY(2px); }
-    }
-
-    /* Enhanced Animated Underline */
-    .main-header h1::after {
-        content: "";
-        position: absolute;
-        width: 0%;
-        height: 6px;
-        background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57, #ff6b6b);
-        background-size: 300% 100%;
-        bottom: -15px;
-        left: 50%;
-        transform: translateX(-50%);
-        border-radius: 3px;
-        animation: underlineGrow 3s ease-in-out infinite, colorWave 2s linear infinite;
-        box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4);
-    }
-
-    /* Underline grow and shrink animation */
-    @keyframes underlineGrow {
-        0%, 100% { 
-            width: 20%; 
-            opacity: 0.6;
-        }
-        25% { 
-            width: 80%; 
-            opacity: 1;
-        }
-        50% { 
-            width: 60%; 
-            opacity: 0.9;
-        }
-        75% { 
-            width: 90%; 
-            opacity: 1;
-        }
-    }
-
-    /* Color wave animation for underline */
-    @keyframes colorWave {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-    }
-
-    /* Enhanced Subtitle with Fade Animation */
-    .main-header p {
-        font-size: 1.6rem;
-        max-width: 600px;
-        margin: 0 auto 2rem auto;
-        color: #cccccc;
-        font-weight: 700;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        letter-spacing: 0.04em;
-        user-select: none;
-        line-height: 1.3;
-        position: relative;
-        z-index: 2;
-        animation: subtitleFade 5s ease-in-out infinite;
-    }
-
-    /* Subtitle fade in/out animation */
-    @keyframes subtitleFade {
-        0%, 100% { opacity: 0.8; transform: translateY(0px); }
-        50% { opacity: 1; transform: translateY(-3px); }
-    }
-
-    /* Pulsing glow effect for header */
-    .main-header::after {
-        content: "";
-        position: absolute;
-        top: -5px; left: -5px; right: -5px; bottom: -5px;
-        border-radius: 25px;
-        background: linear-gradient(45deg, rgba(255, 107, 107, 0.3), rgba(78, 205, 196, 0.3), rgba(69, 183, 209, 0.3));
-        z-index: -1;
-        animation: glowPulse 4s ease-in-out infinite;
-        filter: blur(10px);
-    }
-
-    @keyframes glowPulse {
-        0%, 100% { opacity: 0.3; transform: scale(1); }
-        50% { opacity: 0.6; transform: scale(1.05); }
-    }
-
-    /* Buttons styles */
-    button, .st-expander > div:first-child {
-        transition: background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
-        cursor: pointer;
-    }
-    button:hover {
-        background-color: #6c6cff !important;  /* Light purple blue */
-        box-shadow: 0 6px 20px rgba(108, 108, 255, 0.7) !important;
-        color: #fff !important;
-        transform: translateY(-2px);
-    }
-    .st-expander > div:first-child:hover {
-        background-color: #5757ff33;
-        box-shadow: 0 4px 22px rgba(87, 87, 255, 0.25);
-        border-radius: 12px;
-    }
-
-    .stButton button {
-        font-weight: 700 !important;
-        font-size: 1.1rem !important;
-        border-radius: 12px !important;
-        background-color: #5a5aff !important;
-        color: white !important;
-        box-shadow: 0 6px 20px rgba(90, 90, 255, 0.6);
-        margin-left: 10px;
-    }
-    .stButton button:first-child {
-        margin-left: 0;
-    }
-    .stButton button:hover {
-        background-color: #3f3fff !important;
-        box-shadow: 0 8px 30px rgba(63, 63, 255, 0.8);
-        color: #e0e0ff !important;
-    }
-
-    /* Video container */
-    .video-container {
-        position: relative;
-        width: 320px;
-        height: 180px;
-        margin: 4rem auto 2rem auto;
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: 0 8px 28px rgba(90, 90, 255, 0.25);
-        transition: box-shadow 0.3s ease;
-    }
-    .video-container iframe,
-    .video-container video {
-        position: absolute;
-        top: 0; 
-        left: 0;
-        width: 100%; 
-        height: 100%;
-        border: none;
-        border-radius: 16px;
-    }
-    .video-container:hover {
-        box-shadow: 0 12px 36px rgba(90, 90, 255, 0.4);
-    }
-
-    /* Footer */
-    @keyframes footerGradientShift {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-    }
-    .landing-footer {
-        text-align: center;
-        font-size: 0.9rem;
-        color: white;
-        padding: 2rem 1rem 3rem 1rem;
-        border-top: 1px solid #555555;
-        user-select: none;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background: linear-gradient(270deg, #4b4bc1, #5a5aff, #3f3fff);
-        background-size: 400% 400%;
-        animation: footerGradientShift 15s ease infinite;
-        border-radius: 16px 16px 0 0;
-        box-shadow: 0 -4px 8px rgba(74, 74, 255, 0.6);
-        position: relative;
-    }
-    .landing-footer a {
-        color: #d6d6ff;
-        text-decoration: none;
-        font-weight: 600;
-        margin: 0 8px;
-        position: relative;
-        overflow: hidden;
-        transition: color 0.25s ease;
-    }
-    .landing-footer a::after {
-        content: '';
-        position: absolute;
-        width: 100%;
-        transform: scaleX(0);
-        height: 2px;
-        bottom: -3px;
-        left: 0;
-        background-color: #d6d6ff;
-        transform-origin: bottom right;
-        transition: transform 0.3s ease-out;
-    }
-    .landing-footer a:hover::after,
-    .landing-footer a:focus::after {
-        transform: scaleX(1);
-        transform-origin: bottom left;
-    }
-    .landing-footer a:hover {
-        color: #fff;
-    }
-    .footer-trust-message {
-        font-size: 1.1rem;
-        font-weight: 700;
-        margin-top: 10px;
-        color: #d6d6ffcc;
-        font-style: italic;
-        letter-spacing: 0.04em;
-        user-select: none;
-    }
-
-    /* General margin fix for expander text */
-    .st-expander > div:nth-child(2) {
-        margin-top: 0 !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-    # Main container start
-    st.markdown('<div class="landing-container">', unsafe_allow_html=True)
-
-    # Top right Sign In and Sign Up buttons placement
-    cols = st.columns([4, 1])  # empty space on left; buttons on right
-    with cols[1]:
-        if st.button("🔐 Sign In"):
-            go_to('signin')
-        if st.button("📝 Sign Up"):
-            go_to('signup')
-
-    # Enhanced Header section with animations
-    st.markdown("""
-    <div class="main-header">
-        <h1>🩺 Smart Medical Reminder</h1>
-        <p>Your Health, Our Priority — Never Miss a Dose Again</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Demo video embed - replace video URL if needed
-    video_link = "https://www.youtube.com/embed/0fN7Fxv1e5A"
-    video_embed = f"""
-    <div class="video-container">
-        <iframe src="{video_link}" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
-    </div>
     """
-    st.markdown(video_embed, unsafe_allow_html=True)
-
-    # Main features section header
-    st.markdown("## 🌟 Comprehensive Health Management Features")
-
-    # Expanders for Patients, Doctors, Guardians
-    with st.expander("👤 For Patients"):
-        st.markdown("""
-        - 📱 Smart medicine reminders and scheduling   
-        - 📄 Upload and manage medical documents   
-        - 💬 Direct communication with doctors   
-        - 👨‍👩‍👧 Share access with guardians   
-        - ⏰ On-screen medicine alerts   
-        - 🔍 Search doctors by name, specialization, and city
-        """)
-
-    with st.expander("🩺 For Doctors"):
-        st.markdown("""
-        - 👥 View patient health data and questions   
-        - 📝 Create and manage digital prescriptions   
-        - 📈 Monitor medication adherence   
-        - 🏥 Professional telemedicine consultations   
-        - 📅 Schedule appointments
-        """)
-
-    with st.expander("👨‍👩‍👧 For Guardians"):
-        st.markdown("""
-        - 📊 Monitor patient's medicine intake history   
-        - 🚨 Get instant alerts for missed doses   
-        - 👪 Manage family health coordination and notifications
-        """)
-
-    # Info box for ideal use cases
-    st.info("""
-    Ideal for:
-    - Elderly care
-    - Chronic illness tracking
-    - Family health coordination
-    - Doctor-patient remote assistance
-    """, icon="ℹ️")
-
-    # Footer
+    Landing page for Smart Medical Reminder App
+    """
+    load_css()
+    
+    # Custom CSS for landing page
+    landing_css = """
+    <style>
+        /* Landing page specific styles */
+        .landing-header {
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 3rem 2rem;
+            border-radius: 20px;
+            margin-bottom: 2rem;
+            color: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .landing-header h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            animation: fadeInDown 1s ease-out;
+        }
+        
+        .landing-header p {
+            font-size: 1.3rem;
+            margin-bottom: 0;
+            opacity: 0.9;
+            animation: fadeInUp 1s ease-out 0.3s both;
+        }
+        
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid #e1e8ed;
+            height: 100%;
+            animation: fadeInUp 0.8s ease-out;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .feature-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 1rem;
+        }
+        
+        .feature-description {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+        
+        .cta-section {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 3rem 2rem;
+            border-radius: 20px;
+            text-align: center;
+            margin: 3rem 0;
+            color: white;
+        }
+        
+        .cta-section h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+        }
+        
+        .cta-section p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+        }
+        
+        .landing-button {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin: 0.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .landing-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            text-decoration: none;
+            color: white;
+        }
+        
+        .landing-button.secondary {
+            background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .stats-section {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 15px;
+            margin: 2rem 0;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+            display: block;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 1.1rem;
+            margin-top: 0.5rem;
+        }
+        
+        .testimonial {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin: 1rem 0;
+            border-left: 4px solid #667eea;
+        }
+        
+        .testimonial-text {
+            font-style: italic;
+            color: #555;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+        
+        .testimonial-author {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        
+        .footer-section {
+            background: #2c3e50;
+            color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            margin-top: 3rem;
+            text-align: center;
+        }
+    </style>
+    """
+    
+    st.markdown(landing_css, unsafe_allow_html=True)
+    
+    # Hero Section
     st.markdown("""
-    <div class="landing-footer">
-        <p>&copy; 2025 Smart Medical Reminder. All rights reserved.</p>
-        <p>
-            <a href="https://yourwebsite.com" target="_blank" rel="noopener">Your Website</a> &bull;
-            <a href="https://twitter.com/yourprofile" target="_blank" rel="noopener">Twitter</a> &bull;
-            <a href="https://linkedin.com/in/yourprofile" target="_blank" rel="noopener">LinkedIn</a> &bull;
-            <a href="mailto:support@yourwebsite.com">Contact</a>
-        </p>
-        <div class="footer-trust-message">
-            Loved by <strong>2 Lakh+</strong> people worldwide — Trusted for your health and wellness.
-        </div>
+    <div class="landing-header">
+        <h1>🩺 Smart Medical Reminder</h1>
+        <p>Your Personal Healthcare Companion - Never Miss a Dose Again!</p>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Quick Action Buttons
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown('<div style="text-align: center; margin: 2rem 0;">', unsafe_allow_html=True)
+        
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            if st.button("🔐 Sign In", key="landing_signin", use_container_width=True):
+                go_to('signin')
+        
+        with col_btn2:
+            if st.button("📝 Sign Up", key="landing_signup", use_container_width=True):
+                go_to('signup')
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Features Section
+    st.markdown("## 🌟 Key Features")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("""
+        <div class="feature-card">
+            <div class="feature-icon">💊</div>
+            <div class="feature-title">Medicine Management</div>
+            <div class="feature-description">
+                Easily add, track, and manage all your medications with detailed information 
+                including dosage, expiry dates, and instructions.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div class="feature-card">
+            <div class="feature-icon">⏰</div>
+            <div class="feature-title">Smart Reminders</div>
+            <div class="feature-description">
+                Set up personalized medication schedules with intelligent reminders 
+                that ensure you never miss a dose.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+        <div class="feature-card">
+            <div class="feature-icon">👨‍⚕️</div>
+            <div class="feature-title">Doctor Consultation</div>
+            <div class="feature-description">
+                Connect with healthcare professionals, ask questions, and schedule 
+                appointments directly through the platform.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Second row of features
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("""
+        <div class="feature-card">
+            <div class="feature-icon">📊</div>
+            <div class="feature-title">Health Analytics</div>
+            <div class="feature-description">
+                Track your medication adherence, view health trends, and 
+                get insights into your wellness journey.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div class="feature-card">
+            <div class="feature-icon">🛡️</div>
+            <div class="feature-title">Guardian Support</div>
+            <div class="feature-description">
+                Allow family members or caregivers to monitor your medication 
+                schedule and receive important updates.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+        <div class="feature-card">
+            <div class="feature-icon">📱</div>
+            <div class="feature-title">User-Friendly Interface</div>
+            <div class="feature-description">
+                Intuitive design that's easy to use for all age groups, 
+                with clear navigation and accessible features.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Stats Section
+    st.markdown("""
+    <div class="stats-section">
+        <h2 style="text-align: center; color: #2c3e50; margin-bottom: 2rem;">📈 Platform Statistics</h2>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.markdown("""
+        <div class="stat-item">
+            <span class="stat-number">1000+</span>
+            <div class="stat-label">Active Users</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div class="stat-item">
+            <span class="stat-number">5000+</span>
+            <div class="stat-label">Medicines Tracked</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+        <div class="stat-item">
+            <span class="stat-number">95%</span>
+            <div class="stat-label">Adherence Rate</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col4:
+        st.markdown("""
+        <div class="stat-item">
+            <span class="stat-number">24/7</span>
+            <div class="stat-label">Support Available</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Call to Action Section
+    st.markdown("""
+    <div class="cta-section">
+        <h2>Ready to Take Control of Your Health? 🚀</h2>
+        <p>Join thousands of users who trust Smart Medical Reminder for their healthcare needs</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Final CTA Buttons
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        col_cta1, col_cta2 = st.columns(2)
+        
+        with col_cta1:
+            if st.button("🎉 Get Started - Sign Up", key="cta_signup", use_container_width=True):
+                go_to('signup')
+        
+        with col_cta2:
+            if st.button("👋 Already a User? Sign In", key="cta_signin", use_container_width=True):
+                go_to('signin')
+    
+    # Testimonials Section
+    st.markdown("## 💬 What Our Users Say")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""
+        <div class="testimonial">
+            <div class="testimonial-text">
+                "This app has completely transformed how I manage my medications. 
+                The reminders are perfect and I never miss a dose anymore!"
+            </div>
+            <div class="testimonial-author">- Sarah M., Patient</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div class="testimonial">
+            <div class="testimonial-text">
+                "As a doctor, I love how this platform helps my patients stay compliant 
+                with their medication schedules. Great tool for healthcare!"
+            </div>
+            <div class="testimonial-author">- Dr. James L., Physician</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # How It Works Section
+    st.markdown("## 🔄 How It Works")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("""
+        <div style="text-align: center; padding: 1rem;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">1️⃣</div>
+            <h3>Sign Up</h3>
+            <p>Create your account and set up your profile with basic health information.</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div style="text-align: center; padding: 1rem;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">2️⃣</div>
+            <h3>Add Medicines</h3>
+            <p>Input your medications with details like dosage, timing, and special instructions.</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+        <div style="text-align: center; padding: 1rem;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">3️⃣</div>
+            <h3>Stay Healthy</h3>
+            <p>Receive timely reminders and track your health journey with detailed analytics.</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Footer Section
+    st.markdown("""
+    <div class="footer-section">
+        <h3>🩺 Smart Medical Reminder</h3>
+        <p>Your trusted healthcare companion</p>
+        <p style="margin-top: 1rem; opacity: 0.8;">
+            © 2024 Smart Medical Reminder. All rights reserved. | 
+            Made with ❤️ for better healthcare management
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Add some spacing at the bottom
+    st.markdown("<br><br>", unsafe_allow_html=True)
 
-    # End main container
-    st.markdown('</div>', unsafe_allow_html=True)
+# Optional: Add a function to show app info in sidebar
+def show_app_info():
+    """Display app information in sidebar"""
+    st.sidebar.markdown("### ℹ️ About")
+    st.sidebar.info("""
+    **Smart Medical Reminder** helps you:
+    
+    • 💊 Manage medications
+    • ⏰ Set smart reminders  
+    • 👨‍⚕️ Connect with doctors
+    • 📊 Track health analytics
+    • 🛡️ Share with guardians
+    
+    **Version:** 2.0  
+    **Database:** MySQL
+    """)
+
+# Call the info function if needed
+if __name__ == "__main__":
+    landing_page()

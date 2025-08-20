@@ -1,121 +1,18 @@
 import streamlit as st
 import os
 from datetime import datetime
-
 from utils.css import load_css
 from page.navigation import logout
 from config.constants import (
-    USERS_FILE,
-    PROFILES_FILE,
-    APPOINTMENTS_FILE,
-    DOCTOR_QUERIES_FILE,
-    PRESCRIPTIONS_FILE,
-    MEDICAL_TESTS_FILE
+    USERS_FILE, PROFILES_FILE, APPOINTMENTS_FILE,
+    DOCTOR_QUERIES_FILE, PRESCRIPTIONS_FILE, MEDICAL_TESTS_FILE,
+    PATIENT_DOCTOR_REQUESTS_FILE
 )
 from utils.file_ops import load_json, save_json
-
 from page.update_profile_page import update_profile_page
 
-
 def doctor_dashboard():
-   
-
-    def load_css():
-     st.markdown(
-        """
-        <style>
-        /* Sidebar header */
-        .sidebar .sidebar-content h1.sidebar-header {
-            font-size: 2rem;
-            font-weight: 900;
-            color: #104E8B;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid #4a90e2;
-            margin-bottom: 1rem;
-            user-select: none;
-        }
-
-        /* Sidebar title style */
-        .sidebar .sidebar-content h2 {
-            color: #4a90e2;
-            font-weight: 700;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        /* Sidebar profile picture styling */
-        .sidebar .sidebar-content img {
-            border-radius: 50%;
-            padding: 5px;
-            border: 2px solid #4a90e2;
-            margin-bottom: 1rem;
-        }
-
-        /* Sidebar info box */
-        .sidebar .sidebar-content div[role="alert"] {
-            background-color: #e3f2fd;
-            color: #1565c0;
-            border-radius: 10px;
-            padding: 8px;
-            margin-top: 1rem;
-            font-size: 0.9rem;
-        }
-
-        /* Sidebar navigation radio buttons - 3D button look */
-        .stRadio > div > label {
-            background: linear-gradient(145deg, #f0f0f3, #cacdd1);
-            border-radius: 12px;
-            box-shadow:  3px 3px 5px #babecc,
-                         -3px -3px 5px #ffffff;
-            padding: 10px 18px;
-            margin-bottom: 10px;
-            transition: all 0.2s ease-in-out;
-            font-weight: 600;
-            color: #333;
-            user-select: none;
-            display: block;
-            cursor: pointer;
-        }
-        .stRadio > div > label:hover {
-            box-shadow:  1px 1px 2px #b4b8bf,
-                         -1px -1px 2px #fff;
-            color: #104E8B;
-            background: linear-gradient(145deg, #d6e4fb, #a7bcf7);
-        }
-
-        /* Selected radio button style - pressed 3D effect */
-        .stRadio > div > label[aria-checked="true"] {
-            background: linear-gradient(145deg, #a7bcf7, #5680e9);
-            box-shadow: inset 3px 3px 7px #3d69d1,
-                        inset -3px -3px 7px #7aa1f3;
-            color: white !important;
-            font-weight: 700;
-        }
-
-        /* Subheaders */
-        h3 {
-            color: #1565c0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        /* Buttons hover effect */
-        button:hover {
-            background-color: #4a90e2 !important;
-            color: white !important;
-            cursor: pointer;
-        }
-
-        /* Horizontal rule */
-        hr {
-            border-top: 1px solid #4a90e2;
-            margin: 1rem 0;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
+    load_css()
     doctor_id = st.session_state.get("user_id")
     if not doctor_id:
         st.error("You are not logged in.")
@@ -123,18 +20,18 @@ def doctor_dashboard():
 
     profiles = load_json(PROFILES_FILE)
     doctor_profile = profiles.get(doctor_id, {})
-
     st.sidebar.markdown(f"### Dr. {doctor_profile.get('full_name', 'Doctor')}")
-    profile_pic = doctor_profile.get("profile_pic")
+    profile_pic = doctor_profile.get("photo_path")
     if profile_pic and os.path.exists(profile_pic):
         st.sidebar.image(profile_pic, width=140)
     else:
         st.sidebar.info("No profile photo uploaded.")
 
-    # Sidebar Navigation
     page = st.sidebar.radio("Navigate", [
         "Dashboard Home",
-        "My Appointments",
+        "Connection Requests",
+        "Connected Patients",
+        "Appointment Requests", 
         "Patient Queries",
         "Prescriptions",
         "Medical Tests",
@@ -145,47 +42,183 @@ def doctor_dashboard():
     if page == "Dashboard Home":
         st.title(f"Welcome, Dr. {doctor_profile.get('full_name', 'Doctor')}!")
         st.subheader("🔍 Overview")
-
         appointments = load_json(APPOINTMENTS_FILE)
         queries = load_json(DOCTOR_QUERIES_FILE)
-
+        patient_doctor_requests = load_json(PATIENT_DOCTOR_REQUESTS_FILE)
+        
         upcoming_appointments = [
             appt for appt in appointments.values()
             if appt.get("doctor_id") == doctor_id and appt.get("status") == "scheduled"
         ]
-
         pending_queries = [
             q for q in queries.values()
             if q.get("doctor_id") == doctor_id and q.get("status") == "pending"
         ]
-
+        connected_patients = [
+            req for req in patient_doctor_requests.values()
+            if req.get("doctor_id") == doctor_id and req.get("status") == "approved"
+        ]
+        pending_requests = [
+            req for req in patient_doctor_requests.values()
+            if req.get("doctor_id") == doctor_id and req.get("status") == "pending"
+        ]
+        
         st.metric("📅 Scheduled Appointments", len(upcoming_appointments))
         st.metric("❓ Pending Queries", len(pending_queries))
+        st.metric("👥 Connected Patients", len(connected_patients))
+        st.metric("🔔 Pending Connection Requests", len(pending_requests))
 
-    elif page == "My Appointments":
-        st.title("📅 Upcoming Appointments")
+    elif page == "Connection Requests":
+        st.title("🔗 Patient Connection Requests")
+        
+        patient_doctor_requests = load_json(PATIENT_DOCTOR_REQUESTS_FILE)
         profiles = load_json(PROFILES_FILE)
-        appointments = load_json(APPOINTMENTS_FILE)
-
-        upcoming = [
-            appt for appt in appointments.values()
-            if appt.get("doctor_id") == doctor_id and appt.get("status") == "scheduled"
-        ]
-        if not upcoming:
-            st.info("No upcoming appointments.")
+        
+        st.write(f"**Debug Info:**")
+        st.write(f"- Doctor ID: {doctor_id}")
+        st.write(f"- Total requests in database: {len(patient_doctor_requests)}")
+        
+        requests = []
+        for req_id, req in patient_doctor_requests.items():
+            if req.get("doctor_id") == doctor_id and req.get("status") == "pending":
+                requests.append(req)
+        
+        st.write(f"- Pending requests for this doctor: {len(requests)}")
+        
+        if not requests:
+            st.info("No pending connection requests.")
+            all_doctor_requests = [req for req in patient_doctor_requests.values() if req.get("doctor_id") == doctor_id]
+            if all_doctor_requests:
+                st.write("**All your requests (for debugging):**")
+                for req in all_doctor_requests:
+                    patient_profile = profiles.get(req.get("patient_id"), {})
+                    st.write(f"- Patient: {patient_profile.get('full_name', 'Unknown')} | Status: {req.get('status')}")
         else:
-            for appt in upcoming:
-                patient = profiles.get(appt.get("patient_id"), {})
-                st.markdown(f"- {appt.get('date')} with {patient.get('full_name', 'Unknown Patient')} ({appt.get('type')})")
+            for req in requests:
+                patient_profile = profiles.get(req.get("patient_id"), {})
+                st.markdown("---")
+                st.write(f"**Patient Name:** {patient_profile.get('full_name', 'Unknown Patient')}")
+                st.write(f"**Patient ID:** {req.get('patient_id')}")
+                st.write(f"**Request Date:** {req.get('requested_at', 'Unknown')}")
+                
+                col1, col2 = st.columns(2)
+                if col1.button("✅ Accept", key=f"accept_{req['request_id']}"):
+                    patient_doctor_requests[req['request_id']]['status'] = "approved"
+                    save_json(PATIENT_DOCTOR_REQUESTS_FILE, patient_doctor_requests)
+                    st.success("Connection approved!")
+                    st.rerun()
+                    
+                if col2.button("❌ Deny", key=f"deny_{req['request_id']}"):
+                    patient_doctor_requests[req['request_id']]['status'] = "denied"
+                    save_json(PATIENT_DOCTOR_REQUESTS_FILE, patient_doctor_requests)
+                    st.warning("Connection denied.")
+                    st.rerun()
 
+    elif page == "Connected Patients":
+        st.title("👥 Connected Patients")
+        
+        patient_doctor_requests = load_json(PATIENT_DOCTOR_REQUESTS_FILE)
+        profiles = load_json(PROFILES_FILE)
+        
+        # Get all approved connections for this doctor
+        connected_requests = [
+            req for req in patient_doctor_requests.values()
+            if req.get("doctor_id") == doctor_id and req.get("status") == "approved"
+        ]
+        
+        st.write(f"**Total Connected Patients:** {len(connected_requests)}")
+        
+        if not connected_requests:
+            st.info("No patients connected yet. Approve connection requests to see patients here.")
+        else:
+            for req in connected_requests:
+                patient_id = req.get("patient_id")
+                patient_profile = profiles.get(patient_id, {})
+                
+                st.markdown("---")
+                col1, col2 = st.columns([2, 1])
+                
+                with col1:
+                    st.write(f"**👤 {patient_profile.get('full_name', 'Unknown Patient')}**")
+                    st.write(f"📧 Email: {patient_profile.get('email', 'Not provided')}")
+                    st.write(f"📱 Mobile: {patient_profile.get('mobile', 'Not provided')}")
+                    st.write(f"🩸 Blood Group: {patient_profile.get('blood_group', 'Not provided')}")
+                    st.write(f"🎂 Age: {patient_profile.get('dob', 'Not provided')}")
+                    st.write(f"🔗 Connected on: {req.get('requested_at', 'Unknown')}")
+                
+                with col2:
+                    if st.button("📋 View Medical History", key=f"history_{patient_id}"):
+                        st.info("Medical history view feature coming soon!")
+                    
+                    if st.button("💬 Send Message", key=f"message_{patient_id}"):
+                        st.info("Messaging feature coming soon!")
+                    
+                    if st.button("📅 Schedule Appointment", key=f"schedule_{patient_id}"):
+                        st.info("Appointment scheduling feature coming soon!")
+
+    elif page == "Appointment Requests":
+        appointments = load_json(APPOINTMENTS_FILE)
+        profiles = load_json(PROFILES_FILE)
+        
+        # ADD DEBUG OUTPUT
+        st.write("🐛 **DEBUG - Appointments:**")
+        st.write(f"- Doctor ID: {doctor_id}")
+        st.write(f"- Total appointments in database: {len(appointments)}")
+        
+        # Show all appointments for debugging
+        all_doctor_appointments = [
+            appt for appt in appointments.values()
+            if appt.get("doctor_id") == doctor_id
+        ]
+        st.write(f"- All appointments for this doctor: {len(all_doctor_appointments)}")
+        
+        requests = [
+            appt for appt in appointments.values()
+            if appt.get("doctor_id") == doctor_id and appt.get("status") == "requested"
+        ]
+        st.write(f"- Requested appointments: {len(requests)}")
+        
+        st.title("📅 Appointment Requests")
+        
+        if not requests:
+            st.info("No appointment requests found.")
+            
+            # Show all appointments for debugging
+            if all_doctor_appointments:
+                st.write("**All your appointments (for debugging):**")
+                for appt in all_doctor_appointments:
+                    patient_profile = profiles.get(appt.get("patient_id"), {})
+                    st.write(f"- Patient: {patient_profile.get('full_name', 'Unknown')} | Date: {appt.get('appointment_date')} | Time: {appt.get('appointment_time')} | Status: {appt.get('status')}")
+        else:
+            for appt in requests:
+                patient_profile = profiles.get(appt.get("patient_id"), {})
+                st.markdown("---")
+                st.write(f"**Patient:** {patient_profile.get('full_name', 'Unknown')}")
+                st.write(f"**Date:** {appt.get('appointment_date')}")
+                st.write(f"**Time:** {appt.get('appointment_time')}")
+                st.write(f"**Type:** {appt.get('type')}")
+                st.write(f"**Notes:** {appt.get('notes', 'No notes')}")
+                
+                col1, col2 = st.columns(2)
+                if col1.button("✅ Approve", key=f"approve_{appt['appointment_id']}"):
+                    appointments[appt['appointment_id']]['status'] = "scheduled"
+                    save_json(APPOINTMENTS_FILE, appointments)
+                    st.success("Appointment approved!")
+                    st.rerun()
+                    
+                if col2.button("❌ Decline", key=f"decline_{appt['appointment_id']}"):
+                    appointments[appt['appointment_id']]['status'] = "cancelled"
+                    save_json(APPOINTMENTS_FILE, appointments)
+                    st.warning("Appointment declined.")
+                    st.rerun()
+                
     elif page == "Patient Queries":
-        st.title("💬 Respond to Patient Queries")
         queries = load_json(DOCTOR_QUERIES_FILE)
         my_queries = {
             qid: q for qid, q in queries.items()
             if q.get("doctor_id") == doctor_id and q.get("status", "") == "pending"
         }
-
+        st.title("💬 Respond to Patient Queries")
         if not my_queries:
             st.info("No pending queries.")
         else:
@@ -200,39 +233,39 @@ def doctor_dashboard():
                     queries[qid] = q
                     save_json(DOCTOR_QUERIES_FILE, queries)
                     st.success("✅ Response sent.")
-
+                    st.rerun()
+                    
     elif page == "Prescriptions":
-        st.title("🧾 My Prescriptions")
         prescriptions = load_json(PRESCRIPTIONS_FILE)
         my_presc = [
             p for p in prescriptions.values()
             if p.get("doctor_id") == doctor_id
         ]
-
+        st.title("🧾 My Prescriptions")
         if not my_presc:
             st.info("No prescriptions found.")
         else:
             for pres in my_presc:
                 st.markdown("---")
-                st.markdown(f"- **Patient ID:** {pres.get('patient_id')}  \n- **Notes:** {pres.get('notes')[:200]}")
-
+                st.markdown(f"- **Patient ID:** {pres.get('patient_id')} \n- **Notes:** {pres.get('notes')[:200]}")
+                
     elif page == "Medical Tests":
-        st.title("🧪 Ordered Medical Tests")
         tests = load_json(MEDICAL_TESTS_FILE)
         my_tests = [
             t for t in tests.values()
             if t.get("doctor_id") == doctor_id
         ]
+        st.title("🧪 Ordered Medical Tests")
         if not my_tests:
             st.info("No test orders found.")
         else:
             for test in my_tests:
                 st.markdown("-" * 40)
-                st.markdown(f"- **Patient ID:** {test.get('patient_id')}  \n- **Test Type:** {test.get('test_type')}  \n- **Notes:** {test.get('notes', '-')}")
+                st.markdown(f"- **Patient ID:** {test.get('patient_id')} \n- **Test Type:** {test.get('test_type')} \n- **Notes:** {test.get('notes', '-')}")
                 st.markdown(f"- 📆 Ordered on: {test.get('ordered_at', '-')}")
-    
+                
     elif page == "Update Profile":
         update_profile_page(doctor_id)
-
+        
     elif page == "Logout":
         logout()
