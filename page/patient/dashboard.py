@@ -1,16 +1,14 @@
 import streamlit as st
 import os
-from datetime import datetime
-
+from datetime import datetime, date
 from utils.css import load_css
 from page.navigation import logout
 from config.constants import (
     PROFILES_FILE, MEDICINES_FILE, SCHEDULES_FILE, PRESCRIPTIONS_FILE,
-    MEDICAL_TESTS_FILE, DOCTOR_QUERIES_FILE, GUARDIAN_REQUESTS_FILE, APPOINTMENTS_FILE,
-    PATIENT_DOCTOR_REQUESTS_FILE
+    MEDICAL_TESTS_FILE, DOCTOR_QUERIES_FILE, GUARDIAN_REQUESTS_FILE,
+    APPOINTMENTS_FILE, PATIENT_DOCTOR_REQUESTS_FILE
 )
 from utils.file_ops import load_json
-
 from page.patient.medicines import medicine_manager
 from page.patient.reminders import medicine_reminder_page
 from page.patient.prescriptions import prescriptions_page
@@ -19,271 +17,277 @@ from page.patient.appointments import ask_questions_and_appointments
 from page.patient.adherence import adherence_history
 from page.patient.guardians import manage_guardians
 from page.update_profile_page import update_profile_page
-
-# IMPORT doctor search/connect page
 from page.patient.connect_doctors import connect_doctors_page
+
+
+def safe_date_format(dt):
+    """Safely format date values (handles both strings and datetime objects)"""
+    if dt is None:
+        return 'Unknown'
+    if isinstance(dt, str):
+        return dt[:10]
+    if isinstance(dt, (datetime, date)):
+        return dt.strftime('%Y-%m-%d')
+    return str(dt)
+
+
+def connected_doctors_page(user_id):
+    """Show connected doctors"""
+    st.title("👥 Connected Doctors")
+    
+    profiles = load_json(PROFILES_FILE)
+    patient_doctor_requests = load_json(PATIENT_DOCTOR_REQUESTS_FILE)
+    
+    connected_requests = [
+        req for req in patient_doctor_requests.values()
+        if req.get("patient_id") == user_id and req.get("status") == "approved"
+    ]
+    
+    if not connected_requests:
+        st.info("No doctors connected yet. Go to 'Search Doctors' to connect with doctors.")
+        return
+    
+    st.write(f"**Total Connected Doctors:** {len(connected_requests)}")
+    
+    for req in connected_requests:
+        doctor_id = req.get("doctor_id")
+        doctor_profile = profiles.get(doctor_id, {})
+        
+        with st.expander(f"Dr. {doctor_profile.get('full_name', 'Unknown Doctor')}"):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write(f"**Specialization:** {doctor_profile.get('specialization', 'General')}")
+                st.write(f"**Experience:** {doctor_profile.get('experience', 'N/A')} years")
+                st.write(f"**Hospital:** {doctor_profile.get('hospital_clinic', 'Not provided')}")
+            
+            with col2:
+                st.write(f"**Consultation Fee:** ₹{doctor_profile.get('consultation_fee', 'N/A')}")
+                st.write(f"**Email:** {doctor_profile.get('email', 'Not provided')}")
+                st.write(f"**Mobile:** {doctor_profile.get('mobile', 'Not provided')}")
+            
+            if st.button(f"💬 Message Dr. {doctor_profile.get('full_name', 'Doctor')}", key=f"msg_{doctor_id}"):
+                st.session_state.patient_nav_page = "Ask Doctor / Appointments"
+                st.rerun()
+
+
+def dashboard_home_page(user_id):
+    """Dashboard home page content with light orange background"""
+    profiles = load_json(PROFILES_FILE)
+    medicines = load_json(MEDICINES_FILE)
+    schedules = load_json(SCHEDULES_FILE)
+    appointments = load_json(APPOINTMENTS_FILE)
+    
+    profile = profiles.get(user_id, {})
+    
+    st.markdown("""
+    <style>
+    .dashboard-home-container {
+        background: linear-gradient(135deg, #FFE5B4 0%, #FFCC80 100%);
+        padding: 20px;
+        border-radius: 15px;
+        margin: -30px -30px 20px -30px;
+    }
+    
+    .welcome-header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding: 20px;
+        background: linear-gradient(135deg, #FF8A65, #FF7043);
+        border-radius: 15px;
+        color: white;
+        box-shadow: 0 10px 30px rgba(255, 138, 101, 0.3);
+    }
+    
+    .welcome-header h1 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 700;
+    }
+    
+    .welcome-header p {
+        margin: 10px 0 0 0;
+        font-size: 1.1rem;
+        opacity: 0.9;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    st.markdown(f"""
+    <div class="welcome-header">
+        <h1>Welcome back, {profile.get('full_name', 'Patient')}! 👋</h1>
+        <p>Here's your health summary for today</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Quick stats
+    patient_medicines = {k: v for k, v in medicines.items() if v.get("patient_id") == user_id}
+    patient_schedules = {k: v for k, v in schedules.items() if v.get("patient_id") == user_id}
+    patient_appointments = [a for a in appointments.values() if a.get("patient_id") == user_id]
+    
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("💊 Total Medicines", len(patient_medicines))
+    col2.metric("⏰ Active Reminders", len(patient_schedules))
+    col3.metric("📅 Appointments", len(patient_appointments))
+    col4.metric("📊 Profile Complete", f"{profile.get('profile_completion', 0)}%")
+    
+    st.subheader("🚀 Quick Actions")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("""
+        <div style='background: linear-gradient(135deg, #FF8A65, #FF7043); border-radius: 15px; padding: 20px; color: white; box-shadow: 0 10px 20px rgba(255, 138, 101, 0.3); text-align: center; margin: 10px 0;'>
+            <div style='font-size: 3rem; margin-bottom: 10px;'>💊</div>
+            <h3 style='margin: 10px 0 5px 0; font-size: 1.2rem;'>Medicine Manager</h3>
+            <p style='font-size: 0.9rem; opacity: 0.9; line-height: 1.4;'>Add, track, and organize your medications</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div style='background: linear-gradient(135deg, #FF8A65, #FF7043); border-radius: 15px; padding: 20px; color: white; box-shadow: 0 10px 20px rgba(255, 138, 101, 0.3); text-align: center; margin: 10px 0;'>
+            <div style='font-size: 3rem; margin-bottom: 10px;'>⏰</div>
+            <h3 style='margin: 10px 0 5px 0; font-size: 1.2rem;'>Smart Reminders</h3>
+            <p style='font-size: 0.9rem; opacity: 0.9; line-height: 1.4;'>Never miss a dose with intelligent alerts</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+        <div style='background: linear-gradient(135deg, #FF8A65, #FF7043); border-radius: 15px; padding: 20px; color: white; box-shadow: 0 10px 20px rgba(255, 138, 101, 0.3); text-align: center; margin: 10px 0;'>
+            <div style='font-size: 3rem; margin-bottom: 10px;'>👨‍⚕️</div>
+            <h3 style='margin: 10px 0 5px 0; font-size: 1.2rem;'>Doctor Connect</h3>
+            <p style='font-size: 0.9rem; opacity: 0.9; line-height: 1.4;'>Connect with healthcare professionals</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Recent activity section
+    st.subheader("📋 Recent Activity")
+    
+    recent_activities = []
+    
+    # FIXED: Recent medicines with safe date formatting
+    try:
+        for med_id, med in sorted(patient_medicines.items(), key=lambda x: x[1].get('created_at', ''), reverse=True)[:3]:
+            created_at = safe_date_format(med.get('created_at'))
+            recent_activities.append(f"💊 Added medicine: {med.get('name', 'Unknown')} ({created_at})")
+    except Exception as e:
+        pass
+    
+    # FIXED: Recent appointments with safe date formatting
+    try:
+        for apt in sorted(patient_appointments, key=lambda x: x.get('created_at', ''), reverse=True)[:2]:
+            created_at = safe_date_format(apt.get('created_at'))
+            appointment_date = safe_date_format(apt.get('appointment_date'))
+            recent_activities.append(f"📅 Appointment scheduled for {appointment_date} ({created_at})")
+    except Exception as e:
+        pass
+    
+    if recent_activities:
+        for activity in recent_activities:
+            st.write(f"• {activity}")
+    else:
+        st.info("No recent activities found. Start by adding your first medicine!")
+    
+    if patient_schedules:
+        st.success("✅ You have active medicine reminders set up!")
+    else:
+        st.warning("⚠️ No medicine reminders set. Click 'Medicine Reminder' to get started.")
+    
+    if patient_appointments:
+        recent_appointment = max(patient_appointments, key=lambda x: x.get('created_at', ''))
+        appointment_date = safe_date_format(recent_appointment.get('appointment_date'))
+        st.info(f"📅 Latest appointment: {appointment_date}")
+    else:
+        st.info("📅 No appointments yet. Connect with doctors to schedule appointments!")
+
 
 def patient_dashboard():
     load_css()
-
-    # Enhanced 4D and animated CSS for sidebar, header, summary cards, lists, buttons, and fade-in effect
+    
     custom_css = """
     <style>
-    body {
-        background: #f9fafc;
-        font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
-        color: #284363;
+    .main .block-container {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        max-width: none;
     }
-    .page-content {
-        animation: fadeIn 0.5s ease-in-out;
+    
+    [data-testid="stSidebar"][aria-expanded="false"] ~ .main .block-container {
+        margin-left: auto;
+        margin-right: auto;
+        max-width: 1400px;
+        padding-left: 3rem;
+        padding-right: 3rem;
     }
-    @keyframes fadeIn {
-        0% { opacity: 0; transform: translateY(10px); }
-        100% { opacity: 1; transform: translateY(0); }
+    
+    @media (max-width: 768px) {
+        .main .block-container {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        [data-testid="stSidebar"][aria-expanded="false"] ~ .main .block-container {
+            padding-left: 1rem;
+            padding-right: 1rem;
+            max-width: none;
+        }
     }
-    [data-testid="stSidebar"] {
-        background: #fff;
-        box-shadow: 2px 0 12px 0 rgba(0,0,0,0.08);
-        padding: 32px 22px;
-        border-top-right-radius: 32px;
-        border-bottom-right-radius: 32px;
-        min-width: 310px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
+    
+    .main .block-container {
+        transition: margin-left 0.3s ease, margin-right 0.3s ease, max-width 0.3s ease;
     }
-    .sidebar-profile {
-        text-align: center;
-        margin-bottom: 35px;
-        width: 100%;
+    
+    .stApp {
+        background: #CFEBAE;
+        animation: none !important;
     }
-    .sidebar-profile img {
-        border-radius: 50%;
-        outline: 3px solid #eaf0fb;
-        border: 2px solid #a0aec0;
-        width: 110px !important;
-        height: 110px !important;
-        object-fit: cover;
-        box-shadow:
-          6px 6px 10px rgba(100, 76, 255, 0.15),
-          -6px -6px 10px rgba(255, 255, 255, 0.8);
-        margin: 0 auto 14px auto;
-        display: block;
-        transition: box-shadow 0.3s ease;
-    }
-    .sidebar-profile img:hover {
-        box-shadow:
-          8px 8px 16px rgba(100, 76, 255, 0.35),
-          -8px -8px 16px rgba(255, 255, 255, 1);
-        cursor: pointer;
-    }
-    .sidebar-profile-name {
+    
+    .profile-name {
+        color: white;
         font-weight: 700;
-        font-size: 1.20rem;
-        color: #644cff;
-        margin-bottom: 0;
-        transition: color 0.3s ease;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
     }
-    .sidebar-profile-name:hover {
-        color: #3a2fcc;
-        cursor: default;
+    
+    .nav-container {
+        margin-top: 20px;
     }
-    .sidebar-btn-container {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
-    }
-    .sidebar-button > button {
-        width: 100% !important;
-        padding: 14px 0 !important;
-        font-size: 1.1rem !important;
-        font-weight: 700 !important;
-        border-radius: 16px !important;
-        border: none !important;
-        cursor: pointer !important;
-        background: linear-gradient(145deg, #d9e0ec, #f0f4ff);
-        box-shadow:
-          6px 6px 10px rgba(163,177,198,0.6),
-          -6px -6px 10px rgba(255,255,255,0.9);
-        color: #222 !important;
-        transition: all 0.3s ease;
-        user-select: none;
-        outline-offset: 4px !important;
-        outline: none !important;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        justify-content: center;
-        position: relative;
-    }
-    .sidebar-button > button:hover {
-        background: linear-gradient(145deg, #c1c9e2, #e9edff);
-        box-shadow:
-          8px 8px 15px rgba(143,157,178,0.8),
-          -8px -8px 15px rgba(255,255,255,0.95);
-        color: #4a4a4a !important;
-    }
-    .sidebar-button > button:active {
-        background: linear-gradient(145deg, #bac2db, #d7dcf3);
-        box-shadow: inset 4px 4px 6px rgba(163,177,198,0.6),
-                    inset -4px -4px 6px rgba(255,255,255,0.9);
-        color: #3d3d3d !important;
-    }
-    .sidebar-button > button[selected="true"] {
-        background: linear-gradient(145deg, #8e9de3, #a8b2ff);
-        box-shadow:
-          4px 4px 20px #7b89ff,
-          -4px -4px 20px #b1c1ff,
-          inset 2px 2px 4px #6478ff,
-          inset -2px -2px 4px #aec1ff;
-        color: white !important;
-        font-weight: 800 !important;
-    }
-    .sidebar-button > button[selected="true"]:hover {
-        background: linear-gradient(145deg, #7d8ce0, #95a2ff);
-        box-shadow:
-          6px 6px 25px #6a7aff,
-          -6px -6px 25px #a4b3ff,
-          inset 3px 3px 6px #566aff,
-          inset -3px -3px 6px #a5b8ff;
-        color: white !important;
-    }
-    .sidebar-button > button:focus {
-        outline: 3px solid #7e8aff !important;
-        outline-offset: 2px !important;
-    }
-    .sidebar-button > button span.emoji {
-        font-size: 1.4rem;
-        line-height: 1;
-    }
-    .main-header {
-        font-size: 3rem;
-        font-weight: 900;
-        color: #000000;
-        text-align: center;
-        margin-bottom: 0.7em;
-        text-shadow: 2px 2px 6px rgba(100, 76, 255, 0.35);
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        animation: fadeIn 1s ease forwards;
-    }
-    .main-header span.name-highlight {
-        color: #000000;
-    }
-    .main-subheader {
-        text-align: center;
-        font-size: 1.25rem;
-        color: #55597b;
-        font-weight: 600;
-        margin-bottom: 2em;
-        animation: fadeIn 1.5s ease forwards;
-    }
-    .summary-cards {
-        display: flex;
-        gap: 24px;
-        margin-bottom: 36px;
-        flex-wrap: wrap;
-        user-select: none;
-        justify-content: center;
-    }
-    .summary-card {
-        background: white;
-        flex: 1 1 280px;
-        border-radius: 22px;
-        padding: 30px 32px;
-        box-shadow: 0 20px 42px rgba(127, 88, 255, 0.18);
-        transition: 
-            box-shadow 0.3s ease, 
-            transform 0.3s ease, 
-            color 0.3s ease;
-        cursor: pointer;
-        color: #453a94;
-        font-weight: 700;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 12px;
-        text-align: center;
-        font-size: 1.1rem;
-    }
-    .summary-card:hover {
-        box-shadow: 0 28px 56px rgba(127, 88, 255, 0.28);
-        transform: translateY(-6px) scale(1.03);
-        color: #362e7d;
-    }
-    .summary-card h3 {
-        font-size: 1.6rem;
-        margin: 0;
-    }
-    .summary-card p {
-        margin: 0;
-        color: #5a577a;
-        font-weight: 600;
-    }
-    .stInfo {
-        background-color: #eaf0fb !important;
-        color: #52796f !important;
-        font-weight: 700 !important;
-        border-left: 5px solid #354f52 !important;
-        padding: 18px 25px !important;
-        border-radius: 12px !important;
-        font-size: 1.1rem !important;
-        animation: fadeIn 1s ease forwards;
-    }
-    div[data-testid="stMarkdownContainer"] li {
-        background: #f3ebff;
-        border-radius: 0.66em;
-        padding: 7px 14px;
-        margin-bottom: 6px;
-        color: #4e4e8b;
-        font-weight: 600;
-        font-size: 1.07rem;
-        transition: background-color 0.3s ease;
-    }
-    div[data-testid="stMarkdownContainer"] li:hover {
-        background: #d1c4ff;
-        cursor: default;
-        color: #3f336f;
-    }
+    
     .stButton > button {
-        background-color: #644cff;
-        color: #fff;
-        border: none;
-        padding: 10px 36px;
-        border-radius: 15px;
-        font-size: 1.1rem;
-        font-weight: 700;
-        cursor: pointer;
-        box-shadow: 0 6px 18px #644cff66;
-        transition: background-color 0.25s ease, box-shadow 0.25s ease;
+        background: linear-gradient(135deg, #FF8C00, #FFA500) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 10px !important;
+        padding: 12px 24px !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 15px rgba(255, 140, 0, 0.2) !important;
     }
+    
     .stButton > button:hover {
-        background-color: #284363;
-        box-shadow: 0 8px 22px #284363bb;
-        color: #ffe6fb;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 8px 25px rgba(255, 140, 0, 0.3) !important;
     }
     </style>
     """
     st.markdown(custom_css, unsafe_allow_html=True)
-
+    
     profiles = load_json(PROFILES_FILE)
     user_id = st.session_state.user_id
     profile = profiles.get(user_id, {})
-
-    # -- Sidebar profile --
-    st.sidebar.markdown('<div class="sidebar-profile">', unsafe_allow_html=True)
-    profile_pic_path = profile.get("profile_pic")
-    if profile_pic_path and os.path.exists(profile_pic_path):
-        st.sidebar.image(profile_pic_path, width=110)
-    st.sidebar.markdown(
-        f'<div class="sidebar-profile-name">{profile.get("full_name", "Your Profile")}</div>',
-        unsafe_allow_html=True
-    )
-    if not (profile_pic_path and os.path.exists(profile_pic_path)):
-        st.sidebar.info("No profile photo uploaded.")
-    st.sidebar.markdown("</div>", unsafe_allow_html=True)
-
+    
+    st.sidebar.markdown('<div class="profile-container">', unsafe_allow_html=True)
+    st.sidebar.markdown(f'<h3 class="profile-name">Welcome, {profile.get("full_name", "Patient")}</h3>', unsafe_allow_html=True)
+    
+    profile_pic = profile.get("photo_path")
+    if profile_pic and os.path.exists(profile_pic):
+        st.sidebar.image(profile_pic, width=120)
+    else:
+        st.sidebar.info("📷 Upload profile photo in 'Update Profile'")
+    
+    st.sidebar.markdown('</div>', unsafe_allow_html=True)
+    
     nav_items = [
         ("🏠", "Dashboard Home"),
         ("💊", "Add Medicine"),
@@ -291,173 +295,56 @@ def patient_dashboard():
         ("📄", "Prescriptions"),
         ("🩺", "Medical Tests"),
         ("🔗", "Search Doctors"),
-        ("👥", "Connected Doctors"),  # NEW OPTION
+        ("👥", "Connected Doctors"),
         ("💬", "Ask Doctor / Appointments"),
         ("📊", "Adherence History"),
         ("🛡️", "Guardians"),
         ("📝", "Update Profile"),
         ("🚪", "Logout"),
     ]
-
+    
     if "patient_nav_page" not in st.session_state:
         st.session_state.patient_nav_page = "Dashboard Home"
-
+    
     selected_page = st.session_state.patient_nav_page
-
-    st.sidebar.markdown('<div class="sidebar-btn-container">', unsafe_allow_html=True)
-    for emoji, label_key in nav_items:
-        label_text = f"{emoji}  {label_key}"
-        btn = st.sidebar.button(label_text, key=f"btn-{label_key}")
-        if btn:
-            st.session_state.patient_nav_page = label_key
-            selected_page = label_key
+    
+    st.sidebar.markdown('<div class="nav-container">', unsafe_allow_html=True)
+    for icon, label in nav_items:
+        if st.sidebar.button(f"{icon} {label}", key=label):
+            st.session_state.patient_nav_page = label
             st.rerun()
-    st.sidebar.markdown("</div>", unsafe_allow_html=True)
-
+    st.sidebar.markdown('</div>', unsafe_allow_html=True)
+    
     page = selected_page
-
-    if page == "Dashboard Home":
-        st.markdown(f"""
-            <div class="main-header">
-                Welcome back, <span class="name-highlight">{profile.get("full_name", "Patient")}</span>! 👋
-            </div>
-            <div class="main-subheader">
-                Your smart health companion awaits.
-            </div>
-            <div class="page-content">
-        """, unsafe_allow_html=True)
-
-        with st.spinner("Loading your dashboard..."):
-            medicines = load_json(MEDICINES_FILE)
-            schedules = load_json(SCHEDULES_FILE)
-            appointments = load_json(APPOINTMENTS_FILE)
-
-            patient_meds = [m for m in medicines.values() if m.get("patient_id") == user_id]
-            patient_appointments = [a for a in appointments.values() if a.get("patient_id") == user_id and a.get("status") == "scheduled"]
-
-            reminders = []
-            for sched in schedules.values():
-                if sched.get("patient_id") == user_id:
-                    med_id = sched.get("medicine_id")
-                    med_info = medicines.get(med_id, {})
-                    next_dose = sched.get("next_dose_time")
-                    if next_dose:
-                        try:
-                            next_dose_dt = datetime.fromisoformat(next_dose)
-                            if next_dose_dt.date() == datetime.now().date():
-                                reminders.append((next_dose_dt.time().strftime("%H:%M"), med_info.get("name", "Unknown")))
-                        except:
-                            pass
-
-            # Summary cards clickable to navigate
-            cols = st.columns(min(len(nav_items), 3))
-            cards_info = [
-                ("🩺 Upcoming Appointments", len(patient_appointments), "Ask Doctor / Appointments"),
-                ("💊 Your Medicines", len(patient_meds), "Add Medicine"),
-                ("⏰ Medicine Reminders", len(reminders), "Medicine Reminder"),
-            ]
-            for idx, (title, count, target_page) in enumerate(cards_info):
-                with cols[idx % len(cols)]:
-                    if st.button(f"{title}\n\n{count}", key=f"card-{target_page}"):
-                        st.session_state.patient_nav_page = target_page
-                        st.rerun()
-
-            if reminders:
-                st.subheader("Today's Medicine Reminders")
-                for time_str, med_name in sorted(reminders):
-                    st.write(f"⏰ {time_str} — {med_name}")
-            else:
-                st.info("No medicine reminders for today.", icon="ℹ️")
-
-            if patient_appointments:
-                st.subheader("Upcoming Appointments")
-                for app in patient_appointments:
-                    doc = profiles.get(app.get("doctor_id"), {})
-                    st.write(f"📅 {app.get('date')} with Dr. {doc.get('full_name', 'Doctor')} ({app.get('type')})")
-
-            # DOCTOR CONNECTIONS SECTION
-            st.subheader("Your Doctor Connections")
-            requests = load_json(PATIENT_DOCTOR_REQUESTS_FILE)
-            patient_requests = [req for req in requests.values() if req.get('patient_id') == user_id]
-
-            if patient_requests:
-                for req in patient_requests:
-                    doctor_profile = profiles.get(req.get('doctor_id'), {})
-                    status_color = {"pending": "🟡", "approved": "🟢", "denied": "🔴"}
-                    st.write(f"{status_color.get(req['status'], '⚪')} Dr. {doctor_profile.get('full_name', 'Unknown')} - {req['status'].title()}")
-            else:
-                st.info("No doctor connections yet. Use 'Search Doctors' to connect with doctors.", icon="🔗")
-
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    elif page == "Add Medicine":
-        medicine_manager(user_id)
-    elif page == "Medicine Reminder":
-        medicine_reminder_page(user_id)
-    elif page == "Prescriptions":
-        prescriptions_page(user_id)
-    elif page == "Medical Tests":
-        medical_tests_page(user_id)
-    elif page == "Search Doctors":
-        connect_doctors_page(user_id)
-    elif page == "Connected Doctors":  # NEW PAGE
-        st.title("👥 Connected Doctors")
+    
+    col1, main_content, col3 = st.columns([0.5, 10, 0.5])
+    
+    with main_content:
+        st.markdown('<div class="main-content">', unsafe_allow_html=True)
         
-        patient_doctor_requests = load_json(PATIENT_DOCTOR_REQUESTS_FILE)
-        profiles = load_json(PROFILES_FILE)
+        if page == "Dashboard Home":
+            dashboard_home_page(user_id)
+        elif page == "Add Medicine":
+            medicine_manager(user_id)
+        elif page == "Medicine Reminder":
+            medicine_reminder_page(user_id)
+        elif page == "Prescriptions":
+            prescriptions_page(user_id)
+        elif page == "Medical Tests":
+            medical_tests_page(user_id)
+        elif page == "Search Doctors":
+            connect_doctors_page(user_id)
+        elif page == "Connected Doctors":
+            connected_doctors_page(user_id)
+        elif page == "Ask Doctor / Appointments":
+            ask_questions_and_appointments(user_id)
+        elif page == "Adherence History":
+            adherence_history(user_id)
+        elif page == "Guardians":
+            manage_guardians(user_id)
+        elif page == "Update Profile":
+            update_profile_page(user_id)
+        elif page == "Logout":
+            logout()
         
-        # Get all approved connections for this patient
-        connected_requests = [
-            req for req in patient_doctor_requests.values()
-            if req.get("patient_id") == user_id and req.get("status") == "approved"
-        ]
-        
-        st.write(f"**Total Connected Doctors:** {len(connected_requests)}")
-        
-        if not connected_requests:
-            st.info("No doctors connected yet. Send connection requests to doctors and wait for approval.")
-        else:
-            for req in connected_requests:
-                doctor_id = req.get("doctor_id")
-                doctor_profile = profiles.get(doctor_id, {})
-                
-                st.markdown("---")
-                col1, col2 = st.columns([2, 1])
-                
-                with col1:
-                    st.write(f"**🩺 Dr. {doctor_profile.get('full_name', 'Unknown Doctor')}**")
-                    st.write(f"🏥 Specialization: {doctor_profile.get('specialization', 'Not specified')}")
-                    st.write(f"🏢 Hospital: {doctor_profile.get('hospital_clinic', 'Not provided')}")
-                    st.write(f"📧 Email: {doctor_profile.get('email', 'Not provided')}")
-                    st.write(f"📱 Mobile: {doctor_profile.get('mobile', 'Not provided')}")
-                    st.write(f"💰 Consultation Fee: ₹{doctor_profile.get('consultation_fee', 'Not specified')}")
-                    st.write(f"📅 Experience: {doctor_profile.get('experience', 'Not specified')} years")
-                    st.write(f"🔗 Connected on: {req.get('requested_at', 'Unknown')}")
-                
-                with col2:
-                    if st.button("💬 Ask Question", key=f"question_{doctor_id}"):
-                        st.session_state.patient_nav_page = "Ask Doctor / Appointments"
-                        st.rerun()
-                    
-                    if st.button("📅 Book Appointment", key=f"appointment_{doctor_id}"):
-                        st.session_state.patient_nav_page = "Ask Doctor / Appointments"
-                        st.rerun()
-                    
-                    if st.button("📋 View Prescriptions", key=f"prescriptions_{doctor_id}"):
-                        st.session_state.patient_nav_page = "Prescriptions"
-                        st.rerun()
-                    
-                    if st.button("🧪 View Test Reports", key=f"tests_{doctor_id}"):
-                        st.session_state.patient_nav_page = "Medical Tests"
-                        st.rerun()
-
-    elif page == "Ask Doctor / Appointments":
-        ask_questions_and_appointments(user_id)
-    elif page == "Adherence History":
-        adherence_history(user_id)
-    elif page == "Guardians":
-        manage_guardians(user_id)
-    elif page == "Update Profile":
-        update_profile_page(user_id)
-    elif page == "Logout":
-        logout()
+        st.markdown('</div>', unsafe_allow_html=True)
