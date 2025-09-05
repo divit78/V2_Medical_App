@@ -1,4 +1,0 @@
-# requirements.txt - generated file
-streamlit
-pymysql
-Pillow
