@@ -7,11 +7,7 @@ from dataclasses import dataclass
 
 from utils.css import load_css
 from page.navigation import logout
-from config.constants import (
-    USERS_FILE, PROFILES_FILE, APPOINTMENTS_FILE, DOCTOR_QUERIES_FILE, 
-    PRESCRIPTIONS_FILE, MEDICAL_TESTS_FILE, PATIENT_DOCTOR_REQUESTS_FILE
-)
-from utils.file_ops import load_json, save_json
+from utils.db_helper import db
 from page.update_profile_page import update_profile_page
 
 
@@ -37,151 +33,196 @@ class NavigationItem:
 
 
 class BaseRepository:
-    """Base repository class for data operations"""
+    """Base repository class for database operations"""
     
-    def __init__(self, file_path: str):
-        self.file_path = file_path
+    def __init__(self):
+        self.db = db
     
     def load_data(self) -> Dict[str, Any]:
-        """Load data from JSON file"""
-        return load_json(self.file_path)
-    
-    def save_data(self, data: Dict[str, Any]) -> None:
-        """Save data to JSON file"""
-        save_json(self.file_path, data)
+        """Load data from database - override in subclasses"""
+        return {}
     
     def get_by_id(self, item_id: str) -> Optional[Dict[str, Any]]:
-        """Get single item by ID"""
-        data = self.load_data()
-        return data.get(item_id)
+        """Get single item by ID - override in subclasses"""
+        return None
     
     def update_item(self, item_id: str, updates: Dict[str, Any]) -> bool:
-        """Update specific item"""
-        data = self.load_data()
-        if item_id in data:
-            data[item_id].update(updates)
-            self.save_data(data)
-            return True
+        """Update specific item - override in subclasses"""
         return False
 
 
 class AppointmentRepository(BaseRepository):
-    """Repository for appointment operations"""
-    
-    def __init__(self):
-        super().__init__(APPOINTMENTS_FILE)
+    """Repository for appointment operations using MySQL"""
     
     def get_doctor_appointments(self, doctor_id: str, status: str = None) -> List[Dict[str, Any]]:
         """Get appointments for a specific doctor"""
-        appointments = self.load_data()
-        result = [appt for appt in appointments.values() if appt.get("doctor_id") == doctor_id]
-        
-        if status:
-            result = [appt for appt in result if appt.get("status") == status]
-        
-        return result
+        try:
+            self.db.connect()
+            if status:
+                query = "SELECT * FROM appointments WHERE doctor_id = %s AND status = %s ORDER BY appointment_date DESC"
+                result = self.db.execute_query(query, (doctor_id, status))
+            else:
+                query = "SELECT * FROM appointments WHERE doctor_id = %s ORDER BY appointment_date DESC"
+                result = self.db.execute_query(query, (doctor_id,))
+            return result or []
+        except Exception as e:
+            st.error(f"Error loading appointments: {str(e)}")
+            return []
     
     def approve_appointment(self, appointment_id: str) -> bool:
-        """Approve an appointment"""
-        return self.update_item(appointment_id, {"status": "scheduled"})
+        """Approve an appointment - changes status to 'scheduled'"""
+        try:
+            self.db.connect()
+            query = "UPDATE appointments SET status = %s WHERE appointment_id = %s"
+            result = self.db.execute_query(query, ("scheduled", appointment_id))
+            return result is not None
+        except Exception as e:
+            st.error(f"Error approving appointment: {str(e)}")
+            return False
     
     def decline_appointment(self, appointment_id: str) -> bool:
-        """Decline an appointment"""
-        return self.update_item(appointment_id, {"status": "cancelled"})
+        """Decline an appointment - changes status to 'cancelled'"""
+        try:
+            self.db.connect()
+            query = "UPDATE appointments SET status = %s WHERE appointment_id = %s"
+            result = self.db.execute_query(query, ("cancelled", appointment_id))
+            return result is not None
+        except Exception as e:
+            st.error(f"Error declining appointment: {str(e)}")
+            return False
 
 
 class PatientDoctorRequestRepository(BaseRepository):
-    """Repository for patient-doctor connection requests"""
-    
-    def __init__(self):
-        super().__init__(PATIENT_DOCTOR_REQUESTS_FILE)
+    """Repository for patient-doctor connection requests using MySQL"""
     
     def get_doctor_requests(self, doctor_id: str, status: str = None) -> List[Dict[str, Any]]:
         """Get connection requests for a specific doctor"""
-        requests = self.load_data()
-        result = [req for req in requests.values() if req.get("doctor_id") == doctor_id]
-        
-        if status:
-            result = [req for req in result if req.get("status") == status]
-        
-        return result
+        try:
+            self.db.connect()
+            if status:
+                query = "SELECT * FROM patient_doctor_requests WHERE doctor_id = %s AND status = %s ORDER BY requested_at DESC"
+                result = self.db.execute_query(query, (doctor_id, status))
+            else:
+                query = "SELECT * FROM patient_doctor_requests WHERE doctor_id = %s ORDER BY requested_at DESC"
+                result = self.db.execute_query(query, (doctor_id,))
+            return result or []
+        except Exception as e:
+            st.error(f"Error loading requests: {str(e)}")
+            return []
     
     def approve_request(self, request_id: str) -> bool:
         """Approve a connection request"""
-        return self.update_item(request_id, {"status": "approved"})
+        try:
+            self.db.connect()
+            query = "UPDATE patient_doctor_requests SET status = %s WHERE request_id = %s"
+            result = self.db.execute_query(query, ("approved", request_id))
+            return result is not None
+        except Exception as e:
+            st.error(f"Error approving request: {str(e)}")
+            return False
     
     def deny_request(self, request_id: str) -> bool:
         """Deny a connection request"""
-        return self.update_item(request_id, {"status": "denied"})
+        try:
+            self.db.connect()
+            query = "UPDATE patient_doctor_requests SET status = %s WHERE request_id = %s"
+            result = self.db.execute_query(query, ("denied", request_id))
+            return result is not None
+        except Exception as e:
+            st.error(f"Error denying request: {str(e)}")
+            return False
 
 
 class DoctorQueryRepository(BaseRepository):
-    """Repository for doctor query operations"""
-    
-    def __init__(self):
-        super().__init__(DOCTOR_QUERIES_FILE)
+    """Repository for doctor query operations using MySQL"""
     
     def get_doctor_queries(self, doctor_id: str, status: str = None) -> Dict[str, Dict[str, Any]]:
         """Get queries for a specific doctor"""
-        queries = self.load_data()
-        result = {qid: q for qid, q in queries.items() if q.get("doctor_id") == doctor_id}
-        
-        if status:
-            result = {qid: q for qid, q in result.items() if q.get("status") == status}
-        
-        return result
+        try:
+            self.db.connect()
+            if status:
+                query = "SELECT * FROM doctor_queries WHERE doctor_id = %s AND status = %s ORDER BY submitted_at DESC"
+                result = self.db.execute_query(query, (doctor_id, status))
+            else:
+                query = "SELECT * FROM doctor_queries WHERE doctor_id = %s ORDER BY submitted_at DESC"
+                result = self.db.execute_query(query, (doctor_id,))
+            
+            # Convert to dict format to match original logic
+            return {q['query_id']: q for q in (result or [])}
+        except Exception as e:
+            st.error(f"Error loading queries: {str(e)}")
+            return {}
     
     def respond_to_query(self, query_id: str, response: str) -> bool:
         """Respond to a patient query"""
-        updates = {
-            "doctor_response": response.strip(),
-            "status": "answered",
-            "responded_at": datetime.now().isoformat()
-        }
-        return self.update_item(query_id, updates)
+        try:
+            self.db.connect()
+            query = """
+                UPDATE doctor_queries 
+                SET doctor_response = %s, status = %s 
+                WHERE query_id = %s
+            """
+            result = self.db.execute_query(query, (response.strip(), "answered", query_id))
+            return result is not None
+        except Exception as e:
+            st.error(f"Error responding to query: {str(e)}")
+            return False
     
     def mark_resolved(self, query_id: str) -> bool:
         """Mark query as resolved"""
-        updates = {
-            "status": "resolved",
-            "resolved_at": datetime.now().isoformat()
-        }
-        return self.update_item(query_id, updates)
+        try:
+            self.db.connect()
+            query = "UPDATE doctor_queries SET status = %s WHERE query_id = %s"
+            result = self.db.execute_query(query, ("answered", query_id))
+            return result is not None
+        except Exception as e:
+            st.error(f"Error marking query as resolved: {str(e)}")
+            return False
 
 
 class ProfileRepository(BaseRepository):
-    """Repository for profile operations"""
-    
-    def __init__(self):
-        super().__init__(PROFILES_FILE)
+    """Repository for profile operations using MySQL"""
     
     def get_profile(self, user_id: str) -> Dict[str, Any]:
         """Get user profile"""
-        return self.get_by_id(user_id) or {}
+        try:
+            self.db.connect()
+            query = "SELECT * FROM profiles WHERE user_id = %s"
+            result = self.db.execute_query(query, (user_id,))
+            return result[0] if result else {}
+        except Exception as e:
+            st.error(f"Error loading profile: {str(e)}")
+            return {}
 
 
 class PrescriptionRepository(BaseRepository):
-    """Repository for prescription operations"""
-    
-    def __init__(self):
-        super().__init__(PRESCRIPTIONS_FILE)
+    """Repository for prescription operations using MySQL"""
     
     def get_doctor_prescriptions(self, doctor_id: str) -> List[Dict[str, Any]]:
         """Get prescriptions for a specific doctor"""
-        prescriptions = self.load_data()
-        return [p for p in prescriptions.values() if p.get("doctor_id") == doctor_id]
+        try:
+            self.db.connect()
+            query = "SELECT * FROM prescriptions WHERE doctor_id = %s ORDER BY uploaded_at DESC"
+            result = self.db.execute_query(query, (doctor_id,))
+            return result or []
+        except Exception as e:
+            st.error(f"Error loading prescriptions: {str(e)}")
+            return []
 
 
 class MedicalTestRepository(BaseRepository):
-    """Repository for medical test operations"""
-    
-    def __init__(self):
-        super().__init__(MEDICAL_TESTS_FILE)
+    """Repository for medical test operations using MySQL"""
     
     def get_doctor_tests(self, doctor_id: str) -> List[Dict[str, Any]]:
         """Get medical tests for a specific doctor"""
-        tests = self.load_data()
-        return [t for t in tests.values() if t.get("doctor_id") == doctor_id]
+        try:
+            self.db.connect()
+            query = "SELECT * FROM medical_tests WHERE doctor_id = %s ORDER BY uploaded_at DESC"
+            result = self.db.execute_query(query, (doctor_id,))
+            return result or []
+        except Exception as e:
+            st.error(f"Error loading medical tests: {str(e)}")
+            return []
 
 
 class DateTimeFormatter:
@@ -484,7 +525,7 @@ class ConnectedPatientsPage(BasePage):
 
 
 class AppointmentRequestsPage(BasePage):
-    """Appointment requests page"""
+    """Appointment requests page - UPDATED to show only pending requests"""
     
     def __init__(self, doctor_id: str):
         super().__init__(doctor_id)
@@ -494,11 +535,12 @@ class AppointmentRequestsPage(BasePage):
         """Render appointment requests page"""
         st.title("📅 Appointment Requests")
         
+        # CHANGED: Only show appointments with 'requested' status (pending approval)
         requests = self.appointment_repo.get_doctor_appointments(self.doctor_id, "requested")
-        st.write(f"**Requested appointments:** {len(requests)}")
+        st.write(f"**Pending appointment requests:** {len(requests)}")
         
         if not requests:
-            st.info("No appointment requests found.")
+            st.info("No pending appointment requests found.")
             return
         
         for appt in requests:
@@ -521,7 +563,8 @@ class AppointmentRequestsPage(BasePage):
             col1, col2 = st.columns(2)
             if col1.button("✅ Approve", key=f"approve_{appt['appointment_id']}"):
                 if self.appointment_repo.approve_appointment(appt['appointment_id']):
-                    st.success("Appointment approved!")
+                    st.success("Appointment approved and scheduled!")
+                    st.balloons()
                     st.rerun()
             
             if col2.button("❌ Decline", key=f"decline_{appt['appointment_id']}"):
